@@ -376,18 +376,58 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      */
     private final AtomicInteger ctl = new AtomicInteger(ctlOf(RUNNING, 0));
     private static final int COUNT_BITS = Integer.SIZE - 3;
+    /**
+     * CAPACITY 等于 (2^29)-1, 也就是高3位是0, 低29位是1的一个int型的数,
+     */
     private static final int CAPACITY   = (1 << COUNT_BITS) - 1;
 
     // runState is stored in the high-order bits
+    /**
+     * (运行状态): 能接受新提交的任务, 并且也能处理阻塞队列中的任务.
+     */
     private static final int RUNNING    = -1 << COUNT_BITS;
+    /**
+     *  (关闭状态): 不再接受新提交的任务, 但却可以继续处理阻塞队列中已保存的任务.
+     *  在线程池处于 RUNNING 状态时, 调用 shutdown()方法会使线程池进入到该状态.
+     *  当然, finalize() 方法在执行过程中或许也会隐式地进入该状态.
+     */
     private static final int SHUTDOWN   =  0 << COUNT_BITS;
+    /**
+     * 不能接受新提交的任务, 也不能处理阻塞队列中已保存的任务, 并且会中断正在处理中的任务.
+     * 在线程池处于 RUNNING 或 SHUTDOWN 状态时, 调用 shutdownNow() 方法会使线程池进入到该状态.
+     */
     private static final int STOP       =  1 << COUNT_BITS;
+
+    /**
+     * (清理状态): 所有的任务都已终止了, workerCount (有效线程数) 为0,
+     * 线程池进入该状态后会调用 terminated() 方法以让该线程池进入TERMINATED 状态.
+     * 当线程池处于 SHUTDOWN 状态时, 如果此后线程池内没有线程了并且阻塞队列内也没有待执行的任务了
+     * (即: 二者都为空), 线程池就会进入到该状态. 当线程池处于 STOP 状态时, 如果此后线程池内没有线程了,
+     * 线程池就会进入到该状态.
+     *
+     */
     private static final int TIDYING    =  2 << COUNT_BITS;
+    /**
+     * terminated() 方法执行完后就进入该状态.
+     */
     private static final int TERMINATED =  3 << COUNT_BITS;
+
+    /**
+     * 总结上面5个状态
+     * 前边提到过 COUNT_BITS == 29. 其实我们只需要知道,
+     * 上边这5个常量是按照从小到大的顺序列出的即可. 如果你在源码中看到
+     * rs < SHUTDOWN (假如用 rs 代表线程池的运行状态), 那么你要知道, 这表示线程池处于 RUNNING 状态.
+     */
 
     // Packing and unpacking ctl
     private static int runStateOf(int c)     { return c & ~CAPACITY; }
     private static int workerCountOf(int c)  { return c & CAPACITY; }
+
+    /**
+     *
+     * @param rs 表示线程池的运行状态 (rs 是 runState中各单词首字母的简写组合)
+     * @param wc 表示线程池内有效线程的数量 (wc 是 workerCount中各单词首字母的简写组合)
+     */
     private static int ctlOf(int rs, int wc) { return rs | wc; }
 
     /*
@@ -891,13 +931,30 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * state).
      * @return true if successful
      */
+    /**
+     * 参数core代表在判断是否创建新的线程时，当前有效线程数量与corePoolSize比较还是maximumPoolSize比较
+     * 若为true则与corePoolSize，当前有效线程小于corePoolSize才创建线程
+     */
     private boolean addWorker(Runnable firstTask, boolean core) {
+        // retry 是个无限循环. 当线程池处于 RUNNING (运行)状态时, 只有在线程池中
+        // 的有效线程数被成功加一以后, 才会退出该循环而去执行后边的代码. 也就是说,
+        // 当线程池在 RUNNING (运行)状态下退出该 retry 循环时, 线程池中的有效线程数
+        // 一定少于此次设定的最大线程数(可能是 corePoolSize 或 maximumPoolSize).
         retry:
         for (;;) {
             int c = ctl.get();
             int rs = runStateOf(c);
 
+            // 线程池满足如下条件中的任意一种时, 就会直接结束该方法, 并且返回 false
+            // 表示没有创建新线程, 新提交的任务也没有被执行.
+            // ① 处于 STOP, TYDING 或 TERMINATD 状态
+            // ② 处于 SHUTDOWN 状态, 并且参数 firstTask != null
+            // ③ 处于 SHUTDOWN 状态, 并且阻塞队列 workQueue为空
             // Check if queue empty only if necessary.
+            /*
+             *  1. 处于SHUTDOWN状态不允许添加新的任务，但是还在队列中的任务还是会执行完
+             *  2. 处于 STOP, TYDING 或 TERMINATD 状态不允许添加新的任务，队列中的任务也不执行
+             */
             if (rs >= SHUTDOWN &&
                 ! (rs == SHUTDOWN &&
                    firstTask == null &&
@@ -906,12 +963,20 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
             for (;;) {
                 int wc = workerCountOf(c);
+                // 如果线程池内的有效线程数大于或等于了理论上的最大容量 CAPACITY 或者实际
+                // 设定的最大容量, 就返回 false直接结束该方法. 这样同样没有创建新线程,
+                // 新提交的任务也同样未被执行.
+                // (core ? corePoolSize : maximumPoolSize) 表示如果 core为 true,
+                // 那么实际设定的最大容量为 corePoolSize, 反之则为 maximumPoolSize.
                 if (wc >= CAPACITY ||
                     wc >= (core ? corePoolSize : maximumPoolSize))
                     return false;
+                // 有效线程数加一，说明需要创建新线程了，跳出循环
+                //CAS保证并发设置是安全的，同一时刻只有一个线程+1成功，其它线程继续循环
                 if (compareAndIncrementWorkerCount(c))
                     break retry;
                 c = ctl.get();  // Re-read ctl
+                //如果线程池状态变了，则继续外层循环判断
                 if (runStateOf(c) != rs)
                     continue retry;
                 // else CAS failed due to workerCount change; retry inner loop
@@ -922,7 +987,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         boolean workerAdded = false;
         Worker w = null;
         try {
+            // 根据参数 firstTask来创建 Worker对象 w.
             w = new Worker(firstTask);
+            // 用 w创建线程对象 t.
             final Thread t = w.thread;
             if (t != null) {
                 final ReentrantLock mainLock = this.mainLock;
@@ -946,6 +1013,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 } finally {
                     mainLock.unlock();
                 }
+                // 启动线程 t. 由于 t指向 w.thread所引用的对象, 所以相当于启动的是 w.thread所引用的线程对象.
+                // 而 w是 Runnable 的实现类, w.thread 是以 w作为 Runnable参数所创建的一个线程对象, 所以启动
+                // w.thread所引用的线程对象, 也就是要执行 w 的 run()方法.
                 if (workerAdded) {
                     t.start();
                     workerStarted = true;
@@ -1044,6 +1114,12 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             int rs = runStateOf(c);
 
             // Check if queue empty only if necessary.
+            // 如果线程池已停止, 或者线程池被关闭并且线程池内的阻塞队列为空, 则结束该方法并返回 null.
+            //即当前线程结束，有效的工作线程-1
+            /*
+             *  这段代码就说明如果线程池是SHUTDOWN状态那么，队列中的任务还会执行完
+             *  如果>=STOP状态，那么队列中的任务不会执行
+             */
             if (rs >= SHUTDOWN && (rs >= STOP || workQueue.isEmpty())) {
                 decrementWorkerCount();
                 return null;
@@ -1051,9 +1127,26 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
             int wc = workerCountOf(c);
 
+            // 如果 allowCoreThreadTimeOut 这个字段设置为 true(也就是允许核心线程受超时机制的控制), 则
+            // 直接设置 timed 为 true. 反之, 则再看当前线程池中的有效线程数是否已经超过了核心线程数, 也
+            // 就是是否存在非核心线程. 如果存在非核心线程, 那么也会设置 timed 为true.
+            // 如果 wc <= corePoolSize (线程池中的有效线程数少于核心线程数, 即: 线程池内运行着的都是核心线程),
+            // 并且 allowCoreThreadTimeOut 为 false(即: 核心线程即使空闲, 也不会受超时机制的限制),
+            // 那么就设置 timed 为 false.
             // Are workers subject to culling?
             boolean timed = allowCoreThreadTimeOut || wc > corePoolSize;
 
+            // 当线程池处于 RUNNING (运行)状态但阻塞队列内已经没有任务(为空)时, 将导致有线程接下来会一直
+            // 处于空闲状态. 如果空闲的是核心线程并且设置核心线程不受超时机制的影响(默认情况下就是这个设置),
+            // 那么这些核心线程将一直在线程池中处于空闲状态, 等待着新任务的到来, 只要线程池处于 RUNNING
+            // (运行)状态, 那么, 这些空闲的核心线程将一直在池子中而不会被销毁. 如果空闲的是非核心线程, 或者
+            // 虽然是核心线程但是设置了核心线程受超时机制的限制, 那么当空闲达到超时时间时, 这就满足了这里的
+            // if条件而去执行 if内部的代码, 通过返回 null 结束掉该 getTask()方法, 也最终结束掉 runWorker()方法.
+
+            /**
+             * 1. 如果当前有效线程大于最大线程数且队列为空，那么结束循环，即当前线程结束且有效线程-1
+             * 2. 如果timed且timedOut为true，且有效线程大于1或者队列为空，那么当前线程是不再等待任务，即结束循环且有效线程-1
+             */
             if ((wc > maximumPoolSize || (timed && timedOut))
                 && (wc > 1 || workQueue.isEmpty())) {
                 if (compareAndDecrementWorkerCount(c))
@@ -1062,11 +1155,16 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             }
 
             try {
+                // 从阻塞队列中取出队首的那个任务, 设置给 r. 如果空闲线程等待超时或者该队列已经为空, 则 r为 null.
+                //timed为true标识当前线程去队列中去任务最多等待keepAliveTime时间，如果没等到那么结束当前线程
+                //timed为false标识当前线程一直阻塞，直到从队列中取出一个任务
                 Runnable r = timed ?
                     workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) :
                     workQueue.take();
+                // 如果阻塞队列不为空并且未发生超时的情况, 那么取出的任务就不为 null, 就直接返回该任务对象.
                 if (r != null)
                     return r;
+                //说明没等到任务
                 timedOut = true;
             } catch (InterruptedException retry) {
                 timedOut = false;
@@ -1124,6 +1222,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         w.unlock(); // allow interrupts
         boolean completedAbruptly = true;
         try {
+            // 由前边可知, task 就是 w.firstTask
+            // 如果 task为 null, 那么就不进入该 while循环, 也就不运行该 task. 如果
+            // task不为 null, 那么就执行 getTask()方法. 而getTask()方法是个无限
+            // 循环, 会从阻塞队列 workQueue中不断取出任务来执行. 当阻塞队列 workQueue
+            // 中所有的任务都被取完之后, 就结束下面的while循环.
             while (task != null || (task = getTask()) != null) {
                 w.lock();
                 // If pool is stopping, ensure thread is interrupted;
@@ -1139,6 +1242,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     beforeExecute(wt, task);
                     Throwable thrown = null;
                     try {
+                        // 执行firstTask或者从阻塞队列 workQueue中取出的任务.
                         task.run();
                     } catch (RuntimeException x) {
                         thrown = x; throw x;
@@ -1150,6 +1254,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                         afterExecute(task, thrown);
                     }
                 } finally {
+                    // 将 task 置为 null, 这样使得 while循环是否继续执行的判断, 就只能依赖于判断
+                    // 第二个条件, 也就是 (task = getTask()) != null 这个条件, 是否满足.
                     task = null;
                     w.completedTasks++;
                     w.unlock();
@@ -1352,19 +1458,83 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * thread.  If it fails, we know we are shut down or saturated
          * and so reject the task.
          */
+        // 获取ctl的值.
         int c = ctl.get();
+        //根据ctl的值, 获取线程池中的有效线程数 workerCount, 如果 workerCount
+        /********************************* 情况1 ************************************/
+        //1.小于核心线程数 corePoolSize
         if (workerCountOf(c) < corePoolSize) {
+            /*
+             * 调用addWorker()方法, 将核心线程数corePoolSize设置为线程池中线程
+             * 数的上限值, 将此次提交的任务command作为参数传递进去, 然后再次获取
+             * 线程池中的有效线程数 workerCount, 如果 workerCount依然小于核心
+             * 线程数 corePoolSize, 就创建并启动一个线程, 然后返回 true结束整个
+             * execute()方法. 如果此时的线程池已经关闭, 或者此时再次获取到的有
+             * 效线程数 workerCount已经 >= 核心线程数 corePoolSize, 就再继续执
+             * 行后边的内容.
+             */
             if (addWorker(command, true))
                 return;
+            // 再次获取 ctl的值
             c = ctl.get();
         }
+        /***** 分析1 ****/
+        // 如果情况1的判断条件不满足, 则直接进入情况2. 如果情况1的判断条件满足,
+        // 但情况1中的 addWorker()方法返回 false, 也同样会进入情况2.
+        // 总之, 进入情况2时, 线程池要么已经不处于RUNNING(运行)状态, 要么仍处于RUNNING
+        // (运行)状态但线程池内的有效线程数 workerCount >= 核心线程数 corePoolSize
+        /********************************* 情况2 ************************************/
+
+        /***** 分析2 ****/
+        // 经过上一段分析可知, 进入这个情况时, 线程池要么已经不处于RUNNING(运行)
+        // 状态, 要么仍处于RUNNING(运行)状态但线程池内的有效线程数 workerCount
+        // 已经 >= 核心线程数 corePoolSize
+
+        // 如果线程池未处于RUNNING(运行)状态, 或者虽然处于RUNNING(运行)状态但线程池
+        // 内的阻塞队列 workQueue已满, 则跳过此情况直接进入情况3.
+        // 如果线程池处于RUNNING(运行)状态并且线程池内的阻塞队列 workQueue未满,
+        // 则将提交的任务 command 添加到阻塞队列 workQueue中.
         if (isRunning(c) && workQueue.offer(command)) {
+            // 再次获取 ctl的值.
             int recheck = ctl.get();
+            // 再次判断线程池此时的运行状态. 如果发现线程池未处于 RUNNING(运行)
+            // 状态, 由于先前已将任务 command加入到阻塞队列 workQueue中了, 所以需
+            // 要将该任务从 workQueue中移除. 一般来说, 该移除操作都能顺利进行.
+            // 所以一旦移除成功, 就再调用 handler的 rejectedExecution()方法, 根据
+            // 该 handler定义的拒绝策略, 对该任务进行处理. 当然, 默认的拒绝策略是
+            // AbortPolicy, 也就是直接抛出 RejectedExecutionException 异常, 同时也
+            // 结束了整个 execute()方法的执行.
             if (! isRunning(recheck) && remove(command))
                 reject(command);
+            // 再次计算线程池内的有效线程数 workerCount, 一旦发现该数量变为0,
+            // 就将线程池内的线程数上限值设置为最大线程数 maximumPoolSize, 然后
+            // 只是创建一个线程而不去启动它, 并结束整个 execute()方法的执行.
             else if (workerCountOf(recheck) == 0)
                 addWorker(null, false);
+            // 如果线程池处于 RUNNING(运行)状态并且线程池内的有效线程数大于0, 那么就直接结束该
+            // execute()方法, 被添加到阻塞队列中的该任务将会在未来的某个时刻被执行.
         }
+
+        /***** 分析3 ****/
+        // 如果该方法能够执行到这里, 那么结合分析1和分析2可知, 线程池此时必定是
+        // 下面两种情况中的一种:
+        // ① 已经不处于RUNNING(运行)状态
+        // ② 处于RUNNING(运行)状态, 并且线程池内的有效线程数 workerCount已经
+        //   >= 核心线程数 corePoolSize, 并且线程池内的阻塞队列 workQueue已满
+
+        // 再次执行addWorker() 方法, 将线程池内的线程数上限值设置为最大线程数
+        // maximumPoolSize, 并将提交的任务 command作为被执行的对象, 尝试创建并
+        // 启动一个线程来执行该任务. 如果此时线程池的状态为如下两种中的一种,
+        // 就会触发 handler的 rejectedExecution()方法来拒绝该任务的执行:
+        // ① 未处于RUNNING(运行)状态.
+        // ② 处于RUNNING(运行)状态, 但线程池内的有效线程数已达到本次设定的最大
+        // 线程数 (另外根据分析3可知, 此时线程池内的阻塞队列 workQueue已满).
+        //
+        // 如果线程池处于 RUNNING(运行)状态, 但有效线程数还未达到本次设定的最大
+        // 线程数, 那么就会尝试创建并启动一个线程来执行任务 command. 如果线程的
+        // 创建和启动都很顺利, 那么就直接结束掉该 execute()方法; 如果线程的创建或
+        // 启动失败, 则同样会触发 handler的 rejectedExecution()方法来拒绝该
+        // 任务的执行并结束掉该 execute()方法.
         else if (!addWorker(command, false))
             reject(command);
     }
