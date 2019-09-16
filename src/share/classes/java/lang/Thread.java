@@ -1833,6 +1833,15 @@ class Thread implements Runnable {
      * @see ThreadGroup#uncaughtException
      * @since 1.5
      */
+    /**
+     * 当一个线程由于未捕获的异常而即将终止时*
+     * Java虚拟机将使用{@link #getUncaughtExceptionHandler}获取已设置的UncaughtExceptionHandler
+     * 并通过调用其uncaughtException方法传递相关的异常信息
+     * 如果一个线程没有显式设置UncaughtExceptionHandler，
+     * 那么将ThreadGroup作为它的UncaughtExceptionHandler。
+     * 如果ThreadGroup 对象对异常没有特殊的要求，
+     * 则ThreadGroup会将调用转发给默认的未捕获异常处理器即ThreadGroup#uncaughtException
+     */
     @FunctionalInterface
     public interface UncaughtExceptionHandler {
         /**
