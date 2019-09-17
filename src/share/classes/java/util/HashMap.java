@@ -239,11 +239,13 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * by either of the constructors with arguments.
      * MUST be a power of two <= 1<<30.
      */
+    //最大容量 2的30次方
     static final int MAXIMUM_CAPACITY = 1 << 30;
 
     /**
      * The load factor used when none specified in constructor.
      */
+    //默认的加载因子
     static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
     /**
@@ -276,9 +278,16 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * TreeNode subclass, and in LinkedHashMap for its Entry subclass.)
      */
     static class Node<K,V> implements Map.Entry<K,V> {
+
+        /**
+         * hash值
+         */
         final int hash;
         final K key;
         V value;
+        /**
+         * 链表下一个节点
+         */
         Node<K,V> next;
 
         Node(int hash, K key, V value, Node<K,V> next) {
@@ -292,10 +301,16 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         public final V getValue()      { return value; }
         public final String toString() { return key + "=" + value; }
 
+        /**
+         * 每一个节点的hash值，是将key的hashCode 和 value的hashCode 亦或得到的。
+         */
         public final int hashCode() {
             return Objects.hashCode(key) ^ Objects.hashCode(value);
         }
 
+        /**
+         * 设置新的value 同时返回旧value
+         */
         public final V setValue(V newValue) {
             V oldValue = value;
             value = newValue;
@@ -375,12 +390,15 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * Returns a power of two size for the given target capacity.
      */
     static final int tableSizeFor(int cap) {
+        //经过下面的 或 和位移 运算， n最终各位都是1。
         int n = cap - 1;
         n |= n >>> 1;
         n |= n >>> 2;
         n |= n >>> 4;
         n |= n >>> 8;
         n |= n >>> 16;
+        //判断n是否越界，返回 2的n次方作为 table（哈希桶）的阈值
+        //很精妙的位运算符代码，值得品味
         return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
     }
 
@@ -392,6 +410,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * (We also tolerate length zero in some operations to allow
      * bootstrapping mechanics that are currently not needed.)
      */
+    //哈希桶，存放链表。 长度是2的N次方，或者初始化时为0.
     transient Node<K,V>[] table;
 
     /**
@@ -423,6 +442,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     // Additionally, if the table array has not been allocated, this
     // field holds the initial array capacity, or zero signifying
     // DEFAULT_INITIAL_CAPACITY.)
+    //哈希表内元素数量的阈值，当哈希表内元素数量超过阈值时，会发生扩容resize()。
     int threshold;
 
     /**
@@ -430,6 +450,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      *
      * @serial
      */
+    //加载因子，用于计算哈希表元素数量的阈值。  threshold = 哈希桶.length * loadFactor;
     final float loadFactor;
 
     /* ---------------- Public operations -------------- */
@@ -447,12 +468,15 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal initial capacity: " +
                                                initialCapacity);
+        //初始容量最大不能超过2的30次方
         if (initialCapacity > MAXIMUM_CAPACITY)
             initialCapacity = MAXIMUM_CAPACITY;
+        //显然加载因子不能为负数
         if (loadFactor <= 0 || Float.isNaN(loadFactor))
             throw new IllegalArgumentException("Illegal load factor: " +
                                                loadFactor);
         this.loadFactor = loadFactor;
+        //设置阈值为  》=初始化容量的 2的n次方的值
         this.threshold = tableSizeFor(initialCapacity);
     }
 
@@ -500,12 +524,16 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         int s = m.size();
         if (s > 0) {
             if (table == null) { // pre-size
+                //根据m的元素数量和当前表的加载因子，计算出阈值
                 float ft = ((float)s / loadFactor) + 1.0F;
+                ////修正阈值的边界 不能超过MAXIMUM_CAPACITY
                 int t = ((ft < (float)MAXIMUM_CAPACITY) ?
                          (int)ft : MAXIMUM_CAPACITY);
+                //如果新的阈值大于当前阈值,返回一个大于新的阈值的2次方阈值中最小的一个值
                 if (t > threshold)
                     threshold = tableSizeFor(t);
             }
+            //如果当前元素表不是空的，但是 m的元素数量大于阈值，说明一定要扩容。
             else if (s > threshold)
                 resize();
             for (Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
@@ -624,42 +652,58 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
                    boolean evict) {
         Node<K,V>[] tab; Node<K,V> p; int n, i;
+        //如果当前hash桶为空，那么先扩容
         if ((tab = table) == null || (n = tab.length) == 0)
             n = (tab = resize()).length;
         if ((p = tab[i = (n - 1) & hash]) == null)
+            //如果当前index节点是空的，那么创建一个Node，复制即可
+            //index是利用哈希值&哈希桶的长度-1，替代模运算
             tab[i] = newNode(hash, key, value, null);
         else {
             Node<K,V> e; K k;
+            //如果与当前index节点的Node哈希值相等，key也相等，则是覆盖value操作
             if (p.hash == hash &&
                 ((k = p.key) == key || (key != null && key.equals(k))))
                 e = p;
+            //红黑树的处理
             else if (p instanceof TreeNode)
                 e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
             else {
+                //继续遍历该index下的节点
                 for (int binCount = 0; ; ++binCount) {
+                    //如果遍历完了，那么将追加一个节点到尾部
                     if ((e = p.next) == null) {
                         p.next = newNode(hash, key, value, null);
+                        //如果追加完后节点数>=8，那么将链表转为红黑树
                         if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
                             treeifyBin(tab, hash);
                         break;
                     }
+                    //如果遍历发现与当前节点Node哈希值相等，key也相等，则是覆盖value操作
                     if (e.hash == hash &&
                         ((k = e.key) == key || (key != null && key.equals(k))))
                         break;
                     p = e;
                 }
             }
+            //e不为空说明找到了hash值相等，key相等的节点，那么覆盖旧的value，且返回旧的value
             if (e != null) { // existing mapping for key
                 V oldValue = e.value;
+                //onlyIfAbsen为true说明只有oldValue为null时才替换，否则不替换
                 if (!onlyIfAbsent || oldValue == null)
                     e.value = value;
+                //这是一个空实现的函数，用作LinkedHashMap重写使用。
                 afterNodeAccess(e);
                 return oldValue;
             }
         }
+        //如果执行到了这里，说明插入了一个新的节点，所以会修改modCount，以及返回null。
+        //修改modCount
         ++modCount;
+        //更新size，并判断是否需要扩容。
         if (++size > threshold)
             resize();
+        //这是一个空实现的函数，用作LinkedHashMap重写使用。
         afterNodeInsertion(evict);
         return null;
     }
@@ -674,49 +718,118 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * @return the table
      */
     final Node<K,V>[] resize() {
+        //获取当前哈希桶
         Node<K,V>[] oldTab = table;
+        //获取当前哈希桶的容量
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
+        //获取当前的阈值
         int oldThr = threshold;
+        //定义新的容量以及新的阈值
         int newCap, newThr = 0;
         if (oldCap > 0) {
+            //如果当前容量已达到上限
             if (oldCap >= MAXIMUM_CAPACITY) {
+                //设置阈值2的31次方-1
                 threshold = Integer.MAX_VALUE;
+                //返回当前的容量，不再扩容
                 return oldTab;
             }
+            /*
+             * 否则尝试扩容为之前容量的两倍。
+             * 若扩容为原来两倍后小于最大容量，且旧的容量大于等于默认容量16，
+             * 那么新的阈值也等于原来阈值的两倍
+             */
             else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
                      oldCap >= DEFAULT_INITIAL_CAPACITY)
                 newThr = oldThr << 1; // double threshold
         }
+        //说明oldCap<=0也就是当前表是空的，但是有阈值。代表是初始化时指定了容量、阈值的情况
         else if (oldThr > 0) // initial capacity was placed in threshold
+            //那么新表的容量就等于旧的阈值
             newCap = oldThr;
-        else {               // zero initial threshold signifies using defaults
+        else {
+            //如果当前表是空的，而且也没有阈值。代表是初始化时没有任何容量/阈值参数的情况。
+            // 那么初始化为默认值
+            // zero initial threshold signifies using defaults
             newCap = DEFAULT_INITIAL_CAPACITY;
             newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
         }
+        /*
+         * 如果新的阈值是0，
+         * 1.对应的是当前表是空的，但是有阈值的情况
+         * 2.对应表不空，但是在726行中条件为false
+         *
+         */
         if (newThr == 0) {
+            //根据新表容量 和 加载因子 求出新的阈值
+            /*
+             * 如果是第二种情况，那么newCap可能大于最大容量，
+             * 那么ft也就可能大一最大容量，此时就设置新阈值为2的31次方-1
+             */
             float ft = (float)newCap * loadFactor;
+            //进行越界修复
             newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
                       (int)ft : Integer.MAX_VALUE);
         }
+        //更新阈值
         threshold = newThr;
+        //根据新的容量 构建新的哈希桶
         @SuppressWarnings({"rawtypes","unchecked"})
             Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
+        //table指向当前hash桶
         table = newTab;
+        /*
+         * 如果扩容之前的哈希桶不为空，那么需要计算原来的所有结算转移到新的哈希桶中
+         * 这里假设原来的哈希桶容量为n,
+         * 那么原来在桶中下标为i的节点，在新的hash桶中的节点要么为i，要么为i+n
+         * 举个例子：
+         * 假设原来哈希桶容量为8，原来节点a的hash值为13，那么与8模运算后得到该节点在下标为8的位置
+         * 那么此时扩容哈希桶容量为16，原来节点a的hash值为13，那么与16模运算后得到该节点在下标为13的位置
+         * 所以a节点在旧的hash桶中下标为5，新hash桶中为13
+         * 当然如果原来节点b的hash至为3，那么在新旧hash桶中的下标都为3
+         *
+         *
+         */
         if (oldTab != null) {
             for (int j = 0; j < oldCap; ++j) {
                 Node<K,V> e;
                 if ((e = oldTab[j]) != null) {
+                    //将原哈希桶置空 help GC
                     oldTab[j] = null;
                     if (e.next == null)
+                        /*
+                         * 如果当前链表中就一个元素，（没有发生哈希)
+                         * 直接将这个元素放置在新的哈希桶里。
+                         * 注意这里取下标 是用 哈希值 与 桶的长度-1 。
+                         * 由于桶的长度是2的n次方，这么做其实是等于 一个模运但是效率更高
+                         */
                         newTab[e.hash & (newCap - 1)] = e;
                     else if (e instanceof TreeNode)
+                        //红黑树
                         ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
                     else { // preserve order
+                        /**
+                         * 如果发生过哈希碰撞，节点数小于8个。则要根据链表上每个节点的哈希值，依次放入新哈希
+                         * 因为扩容是容量翻倍，所以原链表上的每个节点，现在可能存放在原来的下标，即low位， 或者扩容后的下标，即high位。 high位=  low位+原哈希桶容量
+                         *
+                         */
+                        //低位链表的头结点、尾节点
                         Node<K,V> loHead = null, loTail = null;
+                        //高位链表的头节点、尾节点
                         Node<K,V> hiHead = null, hiTail = null;
+                        //临时节点 存放e的下一个节点
                         Node<K,V> next;
                         do {
                             next = e.next;
+                            /*
+                             * 这里又是一个利用位运算代替常规运算的高效点：利用哈希值与旧的容量，可以得到哈希值去模后，
+                             * 应该存放在低位，否则存放在高位
+                             * 因为oldCap是2的n次方，所以2进制表示就是 10000或者1000000等等
+                             * 这里用hash & oldCap就代表
+                             * 如果hash值与oldCap为0，说明hash%oldCap==hash%newCap，那么此节点下标位置不变
+                             * 如果hash值与oldCap为1，说明hash%oldCap+oldCap==hash%newCap，那么此节点下标位置改变
+                             *
+                             */
                             if ((e.hash & oldCap) == 0) {
                                 if (loTail == null)
                                     loHead = e;
