@@ -674,7 +674,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                     //如果遍历完了，那么将追加一个节点到尾部
                     if ((e = p.next) == null) {
                         p.next = newNode(hash, key, value, null);
-                        //如果追加完后节点数>=8，那么将链表转为红黑树
+                        //如果追加完后节点数>8，那么将链表转为红黑树
                         if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
                             treeifyBin(tab, hash);
                         break;
@@ -1195,6 +1195,12 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         return null;
     }
 
+    /**
+     * 1.存在且value不为null，则返回value
+     * 不满足上述条件下，先检查Function返回值，若为null，返回null
+     * 存在但value为null，则将Function返回值作为value，返回value
+     * 不存在，新建节点，将Function返回值作为value，返回value
+     */
     @Override
     public V computeIfAbsent(K key,
                              Function<? super K, ? extends V> mappingFunction) {
@@ -1210,10 +1216,12 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             n = (tab = resize()).length;
         if ((first = tab[i = (n - 1) & hash]) != null) {
             if (first instanceof TreeNode)
+                //获取树中的节点
                 old = (t = (TreeNode<K,V>)first).getTreeNode(hash, key);
             else {
                 Node<K,V> e = first; K k;
                 do {
+                    //如果在哈希桶当前下标找到了hash相等且key相等的节点，那么结束循环
                     if (e.hash == hash &&
                         ((k = e.key) == key || (key != null && key.equals(k)))) {
                         old = e;
@@ -1223,23 +1231,31 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 } while ((e = e.next) != null);
             }
             V oldValue;
+            //如果在找到了hash相等且key相等的节点，且节点的value不空，返回value
             if (old != null && (oldValue = old.value) != null) {
                 afterNodeAccess(old);
                 return oldValue;
             }
         }
+        //获取V的值
         V v = mappingFunction.apply(key);
+        //如果表达式返回结果为null,直接返回
         if (v == null) {
             return null;
         } else if (old != null) {
+            //如果在找到了hash相等且key相等的节点，且节点的value为空
+            //那么覆盖old节点value的值
             old.value = v;
             afterNodeAccess(old);
             return v;
         }
         else if (t != null)
+            //到这里说明当前哈希桶下标为树且未找到hash相等且key相等的节点，那么就添加一个节点
             t.putTreeVal(this, tab, hash, key, v);
         else {
+            //当前哈希桶下标元素为空或者当前哈希桶下标为链表且没有找到hash相等且key相等的节点，那么添加一个节点为链表的头结点
             tab[i] = newNode(hash, key, v, first);
+            //如果节点大于8 那么转红黑树
             if (binCount >= TREEIFY_THRESHOLD - 1)
                 treeifyBin(tab, hash);
         }

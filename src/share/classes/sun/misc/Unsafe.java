@@ -151,6 +151,8 @@ public final class Unsafe {
      * @throws RuntimeException No defined exceptions are thrown, not even
      *         {@link NullPointerException}
      */
+    //获得给定对象偏移量上的int值，所谓的偏移量可以简单理解为指针指向该变量的内存地址，
+    //通过偏移量便可得到该对象的变量，进行各种操作
     public native int getInt(Object o, long offset);
 
     /**
@@ -173,12 +175,14 @@ public final class Unsafe {
      * @throws RuntimeException No defined exceptions are thrown, not even
      *         {@link NullPointerException}
      */
+    //设置给定对象上偏移量的int值
     public native void putInt(Object o, long offset, int x);
 
     /**
      * Fetches a reference value from a given Java variable.
      * @see #getInt(Object, long)
      */
+    //获得给定对象偏移量上的引用类型的值
     public native Object getObject(Object o, long offset);
 
     /**
@@ -191,6 +195,7 @@ public final class Unsafe {
      * are updated.
      * @see #putInt(Object, int, int)
      */
+    //设置给定对象偏移量上的引用类型的值
     public native void putObject(Object o, long offset, Object x);
 
     /** @see #getInt(Object, long) */
@@ -198,8 +203,10 @@ public final class Unsafe {
     /** @see #putInt(Object, int, int) */
     public native void    putBoolean(Object o, long offset, boolean x);
     /** @see #getInt(Object, long) */
+    //获取指定内存的byte值
     public native byte    getByte(Object o, long offset);
     /** @see #putInt(Object, int, int) */
+    //设置指定内存的byte值,下同
     public native void    putByte(Object o, long offset, byte x);
     /** @see #getInt(Object, long) */
     public native short   getShort(Object o, long offset);
@@ -210,8 +217,10 @@ public final class Unsafe {
     /** @see #putInt(Object, int, int) */
     public native void    putChar(Object o, long offset, char x);
     /** @see #getInt(Object, long) */
+    //获取指定内存地址的long值
     public native long    getLong(Object o, long offset);
     /** @see #putInt(Object, int, int) */
+    //设置给定内存地址的long值
     public native void    putLong(Object o, long offset, long x);
     /** @see #getInt(Object, long) */
     public native float   getFloat(Object o, long offset);
@@ -447,6 +456,7 @@ public final class Unsafe {
      *
      * @see #allocateMemory
      */
+    //获取指定内存地址的值
     public native long getAddress(long address);
 
     /**
@@ -459,6 +469,7 @@ public final class Unsafe {
      *
      * @see #getAddress(long)
      */
+    //设置给定内存地址的值
     public native void putAddress(long address, long x);
 
     /// wrappers for malloc, realloc, free:
@@ -478,6 +489,7 @@ public final class Unsafe {
      * @see #getByte(long)
      * @see #putByte(long, byte)
      */
+    //分配内存指定大小的内存
     public native long allocateMemory(long bytes);
 
     /**
@@ -497,6 +509,7 @@ public final class Unsafe {
      *
      * @see #allocateMemory
      */
+    //根据给定的内存地址address设置重新分配指定大小的内存
     public native long reallocateMemory(long address, long bytes);
 
     /**
@@ -516,6 +529,7 @@ public final class Unsafe {
      *
      * @since 1.7
      */
+    //将指定对象的给定offset偏移量内存块中的所有字节设置为固定值
     public native void setMemory(Object o, long offset, long bytes, byte value);
 
     /**
@@ -567,6 +581,7 @@ public final class Unsafe {
      *
      * @see #allocateMemory
      */
+    //用于释放allocateMemory和reallocateMemory申请的内存
     public native void freeMemory(long address);
 
     /// random queries
@@ -648,6 +663,7 @@ public final class Unsafe {
      * must preserve all bits of static field offsets.
      * @see #getInt(Object, long)
      */
+    //静态属性的偏移量，用于在对应的Class对象中读写静态属性
     public native long staticFieldOffset(Field f);
 
     /**
@@ -667,6 +683,7 @@ public final class Unsafe {
      * this method reports its result as a long value.
      * @see #getInt(Object, long)
      */
+    //获取字段f在实例对象中的偏移量
     public native long objectFieldOffset(Field f);
 
     /**
@@ -679,6 +696,7 @@ public final class Unsafe {
      * not be used in any way except as argument to the get and put routines in
      * this class.
      */
+    //返回值就是f.getDeclaringClass()
     public native Object staticFieldBase(Field f);
 
     /**
@@ -687,6 +705,7 @@ public final class Unsafe {
      * class.
      * @return false only if a call to {@code ensureClassInitialized} would have no effect
      */
+    //判断是否需要加载一个类
     public native boolean shouldBeInitialized(Class<?> c);
 
     /**
@@ -694,6 +713,7 @@ public final class Unsafe {
      * needed in conjunction with obtaining the static field base of a
      * class.
      */
+    //确保类一定被加载
     public native void ensureClassInitialized(Class<?> c);
 
     /**
@@ -808,6 +828,7 @@ public final class Unsafe {
      * Report the size in bytes of a native memory page (whatever that is).
      * This value will always be a power of two.
      */
+    //获取本机内存的页数，这个值永远都是2的幂次方
     public native int pageSize();
 
 
@@ -817,6 +838,7 @@ public final class Unsafe {
      * Tell the VM to define a class, without security checks.  By default, the
      * class loader and protection domain come from the caller's class.
      */
+    //告诉虚拟机定义了一个没有安全检查的类，默认情况下这个类加载器和保护域来着调用者类
     public native Class<?> defineClass(String name, byte[] b, int off, int len,
                                        ClassLoader loader,
                                        ProtectionDomain protectionDomain);
@@ -837,21 +859,25 @@ public final class Unsafe {
      * @params data      bytes of a class file
      * @params cpPatches where non-null entries exist, they replace corresponding CP entries in data
      */
+    //加载一个匿名类
     public native Class<?> defineAnonymousClass(Class<?> hostClass, byte[] data, Object[] cpPatches);
 
 
     /** Allocate an instance but do not run any constructor.
         Initializes the class if it has not yet been. */
+    //传入一个对象的class并创建该实例对象，但不会调用构造方法
     public native Object allocateInstance(Class<?> cls)
         throws InstantiationException;
 
     /** Lock the object.  It must get unlocked via {@link #monitorExit}. */
+    //获取持有锁
     public native void monitorEnter(Object o);
 
     /**
      * Unlock the object.  It must have been locked via {@link
      * #monitorEnter}.
      */
+    //释放锁，已不建议使用
     public native void monitorExit(Object o);
 
     /**
@@ -859,6 +885,7 @@ public final class Unsafe {
      * whether the lock succeeded.  If it did, the object must be
      * unlocked via {@link #monitorExit}.
      */
+    //尝试获取锁，已不建议使用
     public native boolean tryMonitorEnter(Object o);
 
     /** Throw the exception without telling the verifier. */
@@ -870,6 +897,8 @@ public final class Unsafe {
      * holding <tt>expected</tt>.
      * @return <tt>true</tt> if successful
      */
+    //第一个参数o为给定对象，offset为对象内存的偏移量，通过这个偏移量迅速定位字段并设置或获取该字段的值，
+    //expected表示期望值，x表示要设置的值，下面3个方法都通过CAS原子指令执行操作。
     public final native boolean compareAndSwapObject(Object o, long offset,
                                                      Object expected,
                                                      Object x);
@@ -905,10 +934,15 @@ public final class Unsafe {
     public native void    putObjectVolatile(Object o, long offset, Object x);
 
     /** Volatile version of {@link #getInt(Object, long)}  */
+    //获得给定对象的指定偏移量offset的int值，使用volatile语义，总能获取到最新的int值。
     public native int     getIntVolatile(Object o, long offset);
 
     /** Volatile version of {@link #putInt(Object, long, int)}  */
+    //设置给定对象的int值，使用volatile语义，即设置后立马更新到内存对其他线程可见
     public native void    putIntVolatile(Object o, long offset, int x);
+
+    //其他基本数据类型(long,char,byte,float,double)的操作与putIntVolatile及getIntVolatile相同，
+    // 引用类型putObjectVolatile也一样。
 
     /** Volatile version of {@link #getBoolean(Object, long)}  */
     public native boolean getBooleanVolatile(Object o, long offset);
@@ -962,6 +996,7 @@ public final class Unsafe {
     public native void    putOrderedObject(Object o, long offset, Object x);
 
     /** Ordered/Lazy version of {@link #putIntVolatile(Object, long, int)}  */
+    //与putIntVolatile一样，但要求被操作字段必须有volatile修饰
     public native void    putOrderedInt(Object o, long offset, int x);
 
     /** Ordered/Lazy version of {@link #putLongVolatile(Object, long, long)} */
@@ -979,6 +1014,12 @@ public final class Unsafe {
      * @param thread the thread to unpark.
      *
      */
+    /**
+     * 将一个线程进行挂起是通过park方法实现的，调用 park后，线程将一直阻塞直到超时或者中断等条件出现。
+     * unpark可以终止一个挂起的线程，使其恢复正常。Java对线程的挂起操作被封装在 LockSupport类中，
+     * LockSupport类中有各种版本pack方法，其底层实现最终还是使用Unsafe.park()方法和Unsafe.unpark()方法
+     */
+    //终止挂起的线程，恢复正常.java.util.concurrent包中挂起操作都是在LockSupport类实现的，其底层正是使用这两个方法，
     public native void unpark(Object thread);
 
     /**
@@ -992,6 +1033,7 @@ public final class Unsafe {
      * because <tt>unpark</tt> is, so it would be strange to place it
      * elsewhere.
      */
+    //线程调用该方法，线程将一直阻塞直到超时，或者是中断条件出现。
     public native void park(boolean isAbsolute, long time);
 
     /**
@@ -1025,6 +1067,8 @@ public final class Unsafe {
      * @return the previous value
      * @since 1.8
      */
+    //1.8新增，给定对象o，根据获取内存偏移量指向的字段，将其增加delta，
+    //这是一个CAS操作过程，直到设置成功方能退出循环，返回旧值
     public final int getAndAddInt(Object o, long offset, int delta) {
         int v;
         do {
@@ -1044,6 +1088,7 @@ public final class Unsafe {
      * @return the previous value
      * @since 1.8
      */
+    //1.8新增，方法作用同上，只不过这里操作的long类型数据
     public final long getAndAddLong(Object o, long offset, long delta) {
         long v;
         do {
@@ -1063,6 +1108,8 @@ public final class Unsafe {
      * @return the previous value
      * @since 1.8
      */
+    //1.8新增，给定对象o，根据获取内存偏移量对于字段，将其 设置为新值newValue，
+    //这是一个CAS操作过程，直到设置成功方能退出循环，返回旧值
     public final int getAndSetInt(Object o, long offset, int newValue) {
         int v;
         do {
@@ -1082,6 +1129,7 @@ public final class Unsafe {
      * @return the previous value
      * @since 1.8
      */
+    // 1.8新增，同上，操作的是long类型
     public final long getAndSetLong(Object o, long offset, long newValue) {
         long v;
         do {
@@ -1101,6 +1149,7 @@ public final class Unsafe {
      * @return the previous value
      * @since 1.8
      */
+    //1.8新增，同上，操作的是引用类型数据
     public final Object getAndSetObject(Object o, long offset, Object newValue) {
         Object v;
         do {
@@ -1115,6 +1164,7 @@ public final class Unsafe {
      * with loads or stores after the fence.
      * @since 1.8
      */
+    //在该方法之前的所有读操作，一定在load屏障之前执行完成
     public native void loadFence();
 
     /**
@@ -1122,6 +1172,7 @@ public final class Unsafe {
      * with loads or stores after the fence.
      * @since 1.8
      */
+    //在该方法之前的所有写操作，一定在store屏障之前执行完成
     public native void storeFence();
 
     /**
@@ -1129,6 +1180,7 @@ public final class Unsafe {
      * with loads or stores after the fence.
      * @since 1.8
      */
+    //在该方法之前的所有读写操作，一定在full屏障之前执行完成，这个内存屏障相当于上面两个的合体功能
     public native void fullFence();
 
     /**
