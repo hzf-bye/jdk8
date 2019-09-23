@@ -181,6 +181,7 @@ public interface Lock {
      * circumstances and the exception type must be documented by that
      * {@code Lock} implementation.
      */
+    //加锁
     void lock();
 
     /**
@@ -229,6 +230,8 @@ public interface Lock {
      *         interrupted while acquiring the lock (and interruption
      *         of lock acquisition is supported)
      */
+    //可中断获取锁，与lock()不同之处在于可响应中断操作，即在获
+    //取锁的过程中可中断，注意synchronized在获取锁时是不可中断的
     void lockInterruptibly() throws InterruptedException;
 
     /**
@@ -258,6 +261,7 @@ public interface Lock {
      * @return {@code true} if the lock was acquired and
      *         {@code false} otherwise
      */
+    //尝试非阻塞获取锁，调用该方法后立即返回结果，如果能够获取则返回true，否则返回false
     boolean tryLock();
 
     /**
@@ -318,6 +322,7 @@ public interface Lock {
      *         while acquiring the lock (and interruption of lock
      *         acquisition is supported)
      */
+    //根据传入的时间段获取锁，在指定时间内没有获取锁则返回false，如果在指定时间内当前线程未被中并断获取到锁则返回true
     boolean tryLock(long time, TimeUnit unit) throws InterruptedException;
 
     /**
@@ -332,6 +337,7 @@ public interface Lock {
      * Any restrictions and the exception
      * type must be documented by that {@code Lock} implementation.
      */
+    //解锁
     void unlock();
 
     /**
@@ -353,5 +359,7 @@ public interface Lock {
      * @throws UnsupportedOperationException if this {@code Lock}
      *         implementation does not support conditions
      */
+    //获取等待通知组件，该组件与当前锁绑定，当前线程只有获得了锁
+    //才能调用该组件的wait()方法，而调用后，当前线程将释放锁。
     Condition newCondition();
 }

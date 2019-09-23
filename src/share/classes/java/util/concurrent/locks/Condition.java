@@ -228,6 +228,12 @@ public interface Condition {
      * @throws InterruptedException if the current thread is interrupted
      *         (and interruption of thread suspension is supported)
      */
+    /**
+     * 使当前线程进入等待状态直到被通知(signal)或中断
+     * 当其他线程调用singal()或singalAll()方法时，该线程将被唤醒
+     * 当其他线程调用interrupt()方法中断当前线程
+     * await()相当于synchronized等待唤醒机制中的wait()方法
+     */
     void await() throws InterruptedException;
 
     /**
@@ -263,6 +269,9 @@ public interface Condition {
      * the case and if not, how to respond. Typically, an exception will be
      * thrown (such as {@link IllegalMonitorStateException}) and the
      * implementation must document that fact.
+     */
+    /**
+     * 当前线程进入等待状态，直到被唤醒，该方法不响应中断要求
      */
     void awaitUninterruptibly();
 
@@ -355,6 +364,10 @@ public interface Condition {
      * @throws InterruptedException if the current thread is interrupted
      *         (and interruption of thread suspension is supported)
      */
+    /**
+     * 调用该方法，当前线程进入等待状态，直到被唤醒或被中断或超时
+     * 其中nanosTimeout指的等待超时时间，单位纳秒
+     */
     long awaitNanos(long nanosTimeout) throws InterruptedException;
 
     /**
@@ -370,6 +383,7 @@ public interface Condition {
      * @throws InterruptedException if the current thread is interrupted
      *         (and interruption of thread suspension is supported)
      */
+    //同awaitNanos，但可以指明时间单位
     boolean await(long time, TimeUnit unit) throws InterruptedException;
 
     /**
@@ -447,6 +461,8 @@ public interface Condition {
      * @throws InterruptedException if the current thread is interrupted
      *         (and interruption of thread suspension is supported)
      */
+    //调用该方法当前线程进入等待状态，直到被唤醒、中断或到达某个时
+    //间期限(deadline),如果没到指定时间就被唤醒，返回true，其他情况返回false
     boolean awaitUntil(Date deadline) throws InterruptedException;
 
     /**
@@ -465,6 +481,8 @@ public interface Condition {
      * not held. Typically, an exception such as {@link
      * IllegalMonitorStateException} will be thrown.
      */
+    //唤醒一个等待在Condition上的线程，该线程从等待方法返回前必须
+    //获取与Condition相关联的锁，功能与notify()相同
     void signal();
 
     /**
@@ -483,5 +501,7 @@ public interface Condition {
      * not held. Typically, an exception such as {@link
      * IllegalMonitorStateException} will be thrown.
      */
+    //唤醒所有等待在Condition上的线程，该线程从等待方法返回前必须
+    //获取与Condition相关联的锁，功能与notifyAll()相同
     void signalAll();
 }
