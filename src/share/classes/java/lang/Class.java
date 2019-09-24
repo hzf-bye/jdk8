@@ -253,6 +253,7 @@ public final class Class<T> implements java.io.Serializable,
      *            by this method fails
      * @exception ClassNotFoundException if the class cannot be located
      */
+    //返回与带有给定字符串名的类或接口相关联的 Class 对象。
     @CallerSensitive
     public static Class<?> forName(String className)
                 throws ClassNotFoundException {
@@ -380,6 +381,7 @@ public final class Class<T> implements java.io.Serializable,
      *          s.checkPackageAccess()} denies access to the package
      *          of this class.
      */
+    //创建此 Class 对象所表示的类的一个新实例，必须无参构造函数,否则将抛异常
     @CallerSensitive
     public T newInstance()
         throws InstantiationException, IllegalAccessException
@@ -518,6 +520,7 @@ public final class Class<T> implements java.io.Serializable,
      *          {@code false} otherwise.
      * @since   JDK1.1
      */
+    //判定此 Class 对象是否表示一个数组类。
     public native boolean isArray();
 
 
@@ -911,6 +914,7 @@ public final class Class<T> implements java.io.Serializable,
      * @see     java.lang.reflect.Array
      * @since JDK1.1
      */
+    //返回表示数组元素类型的 Class，即数组的类型
     public native Class<?> getComponentType();
 
 
@@ -1538,6 +1542,7 @@ public final class Class<T> implements java.io.Serializable,
      * @jls 8.2 Class Members
      * @jls 8.3 Field Declarations
      */
+    //获取修饰符为public的字段，包含继承字段
     @CallerSensitive
     public Field[] getFields() throws SecurityException {
         checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
@@ -1596,6 +1601,8 @@ public final class Class<T> implements java.io.Serializable,
      * @jls 8.4 Method Declarations
      * @since JDK1.1
      */
+    //返回一个包含某些 Method 对象的数组，这些对象反映此 Class 对象所表示的类或接口
+    // （包括那些由该类或接口声明的以及从超类和超接口继承的那些的类或接口）的公共 member 方法。
     @CallerSensitive
     public Method[] getMethods() throws SecurityException {
         checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
@@ -1632,6 +1639,7 @@ public final class Class<T> implements java.io.Serializable,
      *
      * @since JDK1.1
      */
+    //返回所有具有public访问权限的构造函数的Constructor对象数组
     @CallerSensitive
     public Constructor<?>[] getConstructors() throws SecurityException {
         checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
@@ -1681,6 +1689,7 @@ public final class Class<T> implements java.io.Serializable,
      * @jls 8.2 Class Members
      * @jls 8.3 Field Declarations
      */
+    //获取指定name名称、具有public修饰的字段，包含继承字段
     @CallerSensitive
     public Field getField(String name)
         throws NoSuchFieldException, SecurityException {
@@ -1764,6 +1773,7 @@ public final class Class<T> implements java.io.Serializable,
      * @jls 8.4 Method Declarations
      * @since JDK1.1
      */
+    //返回一个 Method 对象，它反映此 Class 对象所表示的类或接口的指定公共成员方法。
     @CallerSensitive
     public Method getMethod(String name, Class<?>... parameterTypes)
         throws NoSuchMethodException, SecurityException {
@@ -1805,6 +1815,7 @@ public final class Class<T> implements java.io.Serializable,
      *
      * @since JDK1.1
      */
+    //返回指定参数类型、具有public访问权限的构造函数对象
     @CallerSensitive
     public Constructor<T> getConstructor(Class<?>... parameterTypes)
         throws NoSuchMethodException, SecurityException {
@@ -1897,6 +1908,7 @@ public final class Class<T> implements java.io.Serializable,
      * @jls 8.2 Class Members
      * @jls 8.3 Field Declarations
      */
+    //获取Class对象所表示的类或接口的所有(包含private修饰的)字段,不包括继承的字段
     @CallerSensitive
     public Field[] getDeclaredFields() throws SecurityException {
         checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
@@ -1956,6 +1968,8 @@ public final class Class<T> implements java.io.Serializable,
      * @jls 8.4 Method Declarations
      * @since JDK1.1
      */
+    //返回 Method 对象的一个数组，这些对象反映此 Class 对象表示的类或接口声明的所有方法，
+    // 包括公共、保护、默认（包）访问和私有方法，但不包括继承的方法。
     @CallerSensitive
     public Method[] getDeclaredMethods() throws SecurityException {
         checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
@@ -2001,6 +2015,7 @@ public final class Class<T> implements java.io.Serializable,
      *
      * @since JDK1.1
      */
+    //返回所有声明的（包括private）构造函数对象
     @CallerSensitive
     public Constructor<?>[] getDeclaredConstructors() throws SecurityException {
         checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
@@ -2048,6 +2063,7 @@ public final class Class<T> implements java.io.Serializable,
      * @jls 8.2 Class Members
      * @jls 8.3 Field Declarations
      */
+    //获取指定name名称的(包含private修饰的)字段，不包括继承的字段
     @CallerSensitive
     public Field getDeclaredField(String name)
         throws NoSuchFieldException, SecurityException {
@@ -2108,6 +2124,7 @@ public final class Class<T> implements java.io.Serializable,
      * @jls 8.4 Method Declarations
      * @since JDK1.1
      */
+    //返回一个指定参数的Method对象，该对象反映此 Class 对象所表示的类或接口的指定已声明方法。
     @CallerSensitive
     public Method getDeclaredMethod(String name, Class<?>... parameterTypes)
         throws NoSuchMethodException, SecurityException {
@@ -2158,6 +2175,7 @@ public final class Class<T> implements java.io.Serializable,
      *
      * @since JDK1.1
      */
+    //返回指定参数类型、所有声明的（包括private）构造函数对象
     @CallerSensitive
     public Constructor<T> getDeclaredConstructor(Class<?>... parameterTypes)
         throws NoSuchMethodException, SecurityException {

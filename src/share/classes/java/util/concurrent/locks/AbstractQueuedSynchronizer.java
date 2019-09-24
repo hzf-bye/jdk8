@@ -2185,12 +2185,24 @@ public abstract class AbstractQueuedSynchronizer
          * <li> If interrupted while blocked in step 4, throw InterruptedException.
          * </ol>
          */
+        /**
+         * awaitNanos方法中，根据传递进来的时间计算超时阻塞nanosTimeout，
+         * 然后通过while循环中判断nanosTimeout >= spinForTimeoutThreshold 该公式是否成立，
+         * 当其为true时则说明超时时间nanosTimeout 还未到期，
+         * 再次计算nanosTimeout = deadline - System.nanoTime();即nanosTimeout ，
+         * 持续判断，直到nanosTimeout 小于spinForTimeoutThreshold结束超时阻塞操作，方法也就结束。
+         * 这里的spinForTimeoutThreshold其实更像一个经验值，因为非常短的超时等待无法做到十分精确，
+         * 因此采用了spinForTimeoutThreshold这样一个临界值。
+         */
         public final long awaitNanos(long nanosTimeout)
                 throws InterruptedException {
             if (Thread.interrupted())
                 throw new InterruptedException();
+            //这里是将当前添加线程封装成NODE节点加入Condition的等待队列中
             Node node = addConditionWaiter();
+            //加入等待，那么就释放当前线程持有的锁
             int savedState = fullyRelease(node);
+            //计算过期时间
             final long deadline = System.nanoTime() + nanosTimeout;
             int interruptMode = 0;
             while (!isOnSyncQueue(node)) {
@@ -2198,10 +2210,16 @@ public abstract class AbstractQueuedSynchronizer
                     transferAfterCancelledWait(node);
                     break;
                 }
+                //主要看这里！！由于是while 循环，这里会不断判断等待时间
+                //nanosTimeout 是否超时
+                //static final long spinForTimeoutThreshold = 1000L;
                 if (nanosTimeout >= spinForTimeoutThreshold)
+                    //挂起线程
                     LockSupport.parkNanos(this, nanosTimeout);
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;
+                //重新计算剩余等待时间，while循环中继续判断下列公式
+                //nanosTimeout >= spinForTimeoutThreshold
                 nanosTimeout = deadline - System.nanoTime();
             }
             if (acquireQueued(node, savedState) && interruptMode != THROW_IE)

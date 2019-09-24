@@ -175,6 +175,7 @@ public final class Method extends Executable {
      * Returns the name of the method represented by this {@code Method}
      * object, as a {@code String}.
      */
+    //以 String 形式返回此 Method 对象表示的方法名称，即返回方法的名称
     @Override
     public String getName() {
         return name;
@@ -208,6 +209,7 @@ public final class Method extends Executable {
      *
      * @return the return type for the method this object represents
      */
+    //返回一个 Class 对象，该对象描述了此 Method 对象所表示的方法的正式返回类型,即方法的返回类型
     public Class<?> getReturnType() {
         return returnType;
     }
@@ -236,6 +238,7 @@ public final class Method extends Executable {
      *     type that cannot be instantiated for any reason
      * @since 1.5
      */
+    //返回表示由此 Method 对象所表示方法的正式返回类型的 Type 对象，也是方法的返回类型。
     public Type getGenericReturnType() {
       if (getGenericSignature() != null) {
         return getGenericInfo().getReturnType();
@@ -245,6 +248,7 @@ public final class Method extends Executable {
     /**
      * {@inheritDoc}
      */
+    //按照声明顺序返回 Class 对象的数组，这些对象描述了此 Method 对象所表示的方法的形参类型。即返回方法的参数类型组成的数组
     @Override
     public Class<?>[] getParameterTypes() {
         return parameterTypes.clone();
@@ -263,6 +267,7 @@ public final class Method extends Executable {
      * @throws MalformedParameterizedTypeException {@inheritDoc}
      * @since 1.5
      */
+    //按照声明顺序返回 Type 对象的数组，这些对象描述了此 Method 对象所表示的方法的形参类型的，也是返回方法的参数类型
     @Override
     public Type[] getGenericParameterTypes() {
         return super.getGenericParameterTypes();
@@ -395,6 +400,7 @@ public final class Method extends Executable {
      *
      * @jls 8.4.3 Method Modifiers
      */
+    //返回描述此 Method 的字符串，包括类型参数。
     @Override
     public String toGenericString() {
         return sharedToGenericString(Modifier.methodModifiers(), isDefault());
@@ -465,6 +471,7 @@ public final class Method extends Executable {
      * @exception ExceptionInInitializerError if the initialization
      * provoked by this method fails.
      */
+    //对带有指定参数的指定对象调用由此 Method 对象表示的底层方法。
     @CallerSensitive
     public Object invoke(Object obj, Object... args)
         throws IllegalAccessException, IllegalArgumentException,
@@ -499,6 +506,7 @@ public final class Method extends Executable {
      * {@inheritDoc}
      * @since 1.5
      */
+    //判断方法是否带可变参数，如果将此方法声明为带有可变数量的参数，则返回 true；否则，返回 false。
     @Override
     public boolean isVarArgs() {
         return super.isVarArgs();

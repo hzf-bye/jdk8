@@ -123,6 +123,7 @@ public class AccessibleObject implements AnnotatedElement {
      * @see SecurityManager#checkPermission
      * @see java.lang.RuntimePermission
      */
+    //将此对象的 accessible 标志设置为指示的布尔值,即设置其可访问性
     public void setAccessible(boolean flag) throws SecurityException {
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) sm.checkPermission(ACCESS_PERMISSION);

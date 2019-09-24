@@ -154,6 +154,7 @@ class Field extends AccessibleObject implements Member {
      * Returns the {@code Class} object representing the class or interface
      * that declares the field represented by this {@code Field} object.
      */
+    //返回表示类或接口的 Class 对象，该类或接口声明由此 Field 对象表示的字段
     public Class<?> getDeclaringClass() {
         return clazz;
     }
@@ -161,6 +162,7 @@ class Field extends AccessibleObject implements Member {
     /**
      * Returns the name of the field represented by this {@code Field} object.
      */
+    //返回此 Field 对象表示的字段的名称
     public String getName() {
         return name;
     }
@@ -184,6 +186,7 @@ class Field extends AccessibleObject implements Member {
      * an enumerated type.
      * @since 1.5
      */
+    //如果此字段表示枚举类型的元素则返回 true；否则返回 false
     public boolean isEnumConstant() {
         return (getModifiers() & Modifier.ENUM) != 0;
     }
@@ -208,6 +211,7 @@ class Field extends AccessibleObject implements Member {
      * @return a {@code Class} object identifying the declared
      * type of the field represented by this object
      */
+    //返回一个 Class 对象，它标识了此Field 对象所表示字段的声明类型。
     public Class<?> getType() {
         return type;
     }
@@ -318,6 +322,7 @@ class Field extends AccessibleObject implements Member {
      * @since 1.5
      * @jls 8.3.1 Field Modifiers
      */
+    //返回一个描述此 Field（包括其一般类型）的字符串
     public String toGenericString() {
         int mod = getModifiers();
         Type fieldType = getGenericType();
@@ -374,6 +379,7 @@ class Field extends AccessibleObject implements Member {
      * @exception ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      */
+    //返回指定对象上此 Field 表示的字段的值
     @CallerSensitive
     public Object get(Object obj)
         throws IllegalArgumentException, IllegalAccessException
@@ -745,6 +751,7 @@ class Field extends AccessibleObject implements Member {
      * @exception ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      */
+    //将指定对象变量上此 Field 对象表示的字段设置为指定的新值。
     @CallerSensitive
     public void set(Object obj, Object value)
         throws IllegalArgumentException, IllegalAccessException

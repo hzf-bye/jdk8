@@ -196,6 +196,8 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this queue
      */
+    //将指定的元素插入到此队列的尾部（如果立即可行且不会超过该队列的容量）
+    //在成功时返回 true，如果此队列已满，则抛IllegalStateException。
     boolean add(E e);
 
     /**
@@ -215,6 +217,8 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this queue
      */
+    //将指定的元素插入到此队列的尾部（如果立即可行且不会超过该队列的容量）
+    //在成功时返回 true，如果此队列已满，返回false
     boolean offer(E e);
 
     /**
@@ -229,6 +233,7 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this queue
      */
+    //将指定的元素插入此队列的尾部，如果该队列已满，则一直等到（阻塞）
     void put(E e) throws InterruptedException;
 
     /**
@@ -249,6 +254,9 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this queue
      */
+    //将指定的元素插入到此队列的尾部（如果立即可行且不会超过该队列的容量）
+    // 将指定的元素插入此队列的尾部，如果该队列已满，
+    //则在到达指定的等待时间之前等待可用的空间,该方法可中断
     boolean offer(E e, long timeout, TimeUnit unit)
         throws InterruptedException;
 
@@ -259,6 +267,8 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @return the head of this queue
      * @throws InterruptedException if interrupted while waiting
      */
+    //获取并移除此队列的头部，如果没有元素则等待（阻塞），
+    //直到有元素将唤醒等待线程执行该操作
     E take() throws InterruptedException;
 
     /**
@@ -273,6 +283,7 @@ public interface BlockingQueue<E> extends Queue<E> {
      *         specified waiting time elapses before an element is available
      * @throws InterruptedException if interrupted while waiting
      */
+    //获取并移除此队列的头部，在指定的等待时间前一直等到获取元素， //超过时间方法将结束
     E poll(long timeout, TimeUnit unit)
         throws InterruptedException;
 
@@ -307,6 +318,7 @@ public interface BlockingQueue<E> extends Queue<E> {
      * @throws NullPointerException if the specified element is null
      *         (<a href="../Collection.html#optional-restrictions">optional</a>)
      */
+    //从此队列中移除指定元素的单个实例（如果存在）。
     boolean remove(Object o);
 
     /**

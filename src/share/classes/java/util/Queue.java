@@ -196,6 +196,7 @@ public interface Queue<E> extends Collection<E> {
      *
      * @return the head of this queue, or {@code null} if this queue is empty
      */
+    //获取并移除此队列的头，如果此队列为空，则返回 null。
     E poll();
 
     /**
@@ -206,6 +207,7 @@ public interface Queue<E> extends Collection<E> {
      * @return the head of this queue
      * @throws NoSuchElementException if this queue is empty
      */
+    //获取但不移除此队列的头元素,没有则跑异常NoSuchElementException
     E element();
 
     /**
@@ -214,5 +216,6 @@ public interface Queue<E> extends Collection<E> {
      *
      * @return the head of this queue, or {@code null} if this queue is empty
      */
+    //获取但不移除此队列的头；如果此队列为空，则返回 null。
     E peek();
 }

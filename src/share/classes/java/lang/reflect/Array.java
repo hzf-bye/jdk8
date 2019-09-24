@@ -70,6 +70,7 @@ class Array {
      * @exception NegativeArraySizeException if the specified {@code length}
      * is negative
      */
+    //创建一个具有指定的组件类型和长度的新数组。
     public static Object newInstance(Class<?> componentType, int length)
         throws NegativeArraySizeException {
         return newArray(componentType, length);
@@ -106,6 +107,7 @@ class Array {
      * @exception NegativeArraySizeException if any of the components in
      * the specified {@code dimensions} argument is negative.
      */
+    //创建一个具有指定类型和维度的新数组。
     public static Object newInstance(Class<?> componentType, int... dimensions)
         throws IllegalArgumentException, NegativeArraySizeException {
         return multiNewArray(componentType, dimensions);
@@ -138,6 +140,7 @@ class Array {
      * argument is negative, or if it is greater than or equal to the
      * length of the specified array
      */
+    //返回指定数组对象中索引组件的值。
     public static native Object get(Object array, int index)
         throws IllegalArgumentException, ArrayIndexOutOfBoundsException;
 
@@ -310,6 +313,7 @@ class Array {
      * argument is negative, or if it is greater than or equal to
      * the length of the specified array
      */
+    //将指定数组对象中索引组件的值设置为指定的新值。
     public static native void set(Object array, int index, Object value)
         throws IllegalArgumentException, ArrayIndexOutOfBoundsException;
 

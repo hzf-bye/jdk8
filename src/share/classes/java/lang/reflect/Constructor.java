@@ -157,6 +157,7 @@ public final class Constructor<T> extends Executable {
     /**
      * {@inheritDoc}
      */
+    //返回 Class 对象，该对象表示声明由此 Constructor 对象表示的构造方法的类,其实就是返回真实类型（不包含参数）
     @Override
     public Class<T> getDeclaringClass() {
         return clazz;
@@ -166,6 +167,7 @@ public final class Constructor<T> extends Executable {
      * Returns the name of this constructor, as a string.  This is
      * the binary name of the constructor's declaring class.
      */
+    //以字符串形式返回此构造方法的名称。
     @Override
     public String getName() {
         return getDeclaringClass().getName();
@@ -197,6 +199,7 @@ public final class Constructor<T> extends Executable {
     /**
      * {@inheritDoc}
      */
+    //按照声明顺序返回一组 Class 对象，即返回Constructor 对象所表示构造方法的形参类型
     @Override
     public Class<?>[] getParameterTypes() {
         return parameterTypes.clone();
@@ -214,6 +217,7 @@ public final class Constructor<T> extends Executable {
      * @throws MalformedParameterizedTypeException {@inheritDoc}
      * @since 1.5
      */
+    //按照声明顺序返回一组 Type 对象，返回的就是 Constructor对象构造函数的形参类型。
     @Override
     public Type[] getGenericParameterTypes() {
         return super.getGenericParameterTypes();
@@ -329,6 +333,7 @@ public final class Constructor<T> extends Executable {
      * @since 1.5
      * @jls 8.8.3. Constructor Modifiers
      */
+    //返回描述此 Constructor 的字符串，其中包括类型参数。
     @Override
     public String toGenericString() {
         return sharedToGenericString(Modifier.constructorModifiers(), false);
@@ -387,6 +392,7 @@ public final class Constructor<T> extends Executable {
      * @exception ExceptionInInitializerError if the initialization provoked
      *              by this method fails.
      */
+    //使用此 Constructor对象表示的构造函数来创建新实例
     @CallerSensitive
     public T newInstance(Object ... initargs)
         throws InstantiationException, IllegalAccessException,
