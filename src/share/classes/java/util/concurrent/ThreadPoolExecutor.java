@@ -374,6 +374,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * that workerCount is 0 (which sometimes entails a recheck -- see
      * below).
      */
+    //用 ctl 的高3位来表示线程池的运行状态, 用低29位来表示线程池内有效线程的数量
     private final AtomicInteger ctl = new AtomicInteger(ctlOf(RUNNING, 0));
     private static final int COUNT_BITS = Integer.SIZE - 3;
     /**
@@ -824,8 +825,10 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         try {
             for (Worker w : workers) {
                 Thread t = w.thread;
+                //无中断标志的且获取到了锁，获取到了锁说明当前线程的是空闲的
                 if (!t.isInterrupted() && w.tryLock()) {
                     try {
+                        //对于空闲的线程设置中断标志位
                         t.interrupt();
                     } catch (SecurityException ignore) {
                     } finally {
@@ -953,7 +956,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             // Check if queue empty only if necessary.
             /*
              *  1. 处于SHUTDOWN状态不允许添加新的任务，但是还在队列中的任务还是会执行完
-             *  2. 处于 STOP, TYDING 或 TERMINATD 状态不允许添加新的任务，队列中的任务也不执行
+             *  2. 处于 STOP, TYDING 或 TERMINATD 状态不允许添加新的任务
              */
             if (rs >= SHUTDOWN &&
                 ! (rs == SHUTDOWN &&
@@ -1228,6 +1231,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             // 循环, 会从阻塞队列 workQueue中不断取出任务来执行. 当阻塞队列 workQueue
             // 中所有的任务都被取完之后, 就结束下面的while循环.
             while (task != null || (task = getTask()) != null) {
+                //当前线程加锁，标识不处于空闲状态
                 w.lock();
                 // If pool is stopping, ensure thread is interrupted;
                 // if not, ensure thread is not interrupted.  This
@@ -1258,6 +1262,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     // 第二个条件, 也就是 (task = getTask()) != null 这个条件, 是否满足.
                     task = null;
                     w.completedTasks++;
+                    //当前线程执行完后，释放锁，标识处于空闲状态
                     w.unlock();
                 }
             }
@@ -1554,9 +1559,17 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         final ReentrantLock mainLock = this.mainLock;
         mainLock.lock();
         try {
+            //1.获取线程池的锁，然后调用checkShutdownAccess方法检查每一个线程池的线程是否有可以ShutDown的权限
             checkShutdownAccess();
+            //2.通过自旋的CAS操作来将ctl中的状态变为SHUTDOWN
             advanceRunState(SHUTDOWN);
+            /*
+             * 3.调用interruptIdleWorkers方法，将所有Idle状态的线程都调用interrupt方法。
+             * 而判断idle状态使用Worker中的ReentrantLock来调用tryLock尝试加锁，
+             * 看Worker线程是否已经获取了锁，如果Worker的锁已经被加了的话，那么tryLock返回的就是false。
+             */
             interruptIdleWorkers();
+            // 4.钩子函数，主要用于清理一些资源
             onShutdown(); // hook for ScheduledThreadPoolExecutor
         } finally {
             mainLock.unlock();
@@ -1586,9 +1599,13 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         final ReentrantLock mainLock = this.mainLock;
         mainLock.lock();
         try {
+            //1.获取线程池的锁，然后调用checkShutdownAccess方法检查每一个线程池的线程是否有可以ShutDown的权限
             checkShutdownAccess();
+            //2.通过自旋的CAS操作来将ctl中的状态变为STOP
             advanceRunState(STOP);
+            //3.中断所有线程，包括工作线程以及空闲线程
             interruptWorkers();
+            // 丢弃工作队列中存量任务
             tasks = drainQueue();
         } finally {
             mainLock.unlock();

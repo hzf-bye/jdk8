@@ -499,6 +499,11 @@ public final class Class<T> implements java.io.Serializable,
      * @exception NullPointerException if the specified Class parameter is
      *            null.
      * @since JDK1.1
+     *
+     */
+    /**
+     * class1.isAssignableFrom(class2)
+     * class2是不是class1的子类或者子接口
      */
     public native boolean isAssignableFrom(Class<?> cls);
 

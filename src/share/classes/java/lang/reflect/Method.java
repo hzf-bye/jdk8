@@ -165,6 +165,7 @@ public final class Method extends Executable {
 
     /**
      * {@inheritDoc}
+     * 此 Method 对象表示的方法的类或接口的 Class 对象。
      */
     @Override
     public Class<?> getDeclaringClass() {
