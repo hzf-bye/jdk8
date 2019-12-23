@@ -255,6 +255,9 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * than 2 and should be at least 8 to mesh with assumptions in
      * tree removal about conversion back to plain bins upon
      * shrinkage.
+     * 一个桶的树化阈值
+     * 当桶中元素个数超过这个值时，需要使用红黑树节点替换链表节点
+     * 这个值必须为 8，要不然频繁转换效率也不高
      */
     static final int TREEIFY_THRESHOLD = 8;
 
@@ -262,6 +265,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * The bin count threshold for untreeifying a (split) bin during a
      * resize operation. Should be less than TREEIFY_THRESHOLD, and at
      * most 6 to mesh with shrinkage detection under removal.
+     * 一个树的链表还原阈值
+     * 当扩容时，桶中元素个数小于这个值，就会把树形的桶元素 还原（切分）为链表结构
+     * 这个值应该比上面那个小，至少为 6，避免频繁转换
+     *
      */
     static final int UNTREEIFY_THRESHOLD = 6;
 
@@ -270,6 +277,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * (Otherwise the table is resized if too many nodes in a bin.)
      * Should be at least 4 * TREEIFY_THRESHOLD to avoid conflicts
      * between resizing and treeification thresholds.
+     * 哈希表的最小树形化容量
+     * 当哈希表中的容量大于这个值时，表中的桶才能进行树形化
+     * 否则桶内元素太多时会扩容，而不是树形化
+     * 为了避免进行扩容、树形化选择的冲突，这个值不能小于 4 * TREEIFY_THRESHOLD
      */
     static final int MIN_TREEIFY_CAPACITY = 64;
 
@@ -863,15 +874,23 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     /**
      * Replaces all linked nodes in bin at index for given hash unless
      * table is too small, in which case resizes instead.
+     * //将桶内所有的 链表节点 替换成 红黑树节点
      */
     final void treeifyBin(Node<K,V>[] tab, int hash) {
         int n, index; Node<K,V> e;
+        //如果当前哈希表为空或者哈希表中容量的个数小于 进行树形化的阈值(默认为 64)，就去新建/扩容
         if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY)
             resize();
         else if ((e = tab[index = (n - 1) & hash]) != null) {
+            //如果哈希表中的元素个数超过了 树形化阈值，进行树形化
+            // e 是哈希表中指定位置桶里的链表节点，从第一个开始
+
+            //红黑树的头、尾节点
             TreeNode<K,V> hd = null, tl = null;
             do {
+                //新建一个树形节点，内容和当前链表节点 e 一致
                 TreeNode<K,V> p = replacementTreeNode(e, null);
+                //确定树头节点
                 if (tl == null)
                     hd = p;
                 else {
@@ -880,7 +899,9 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 }
                 tl = p;
             } while ((e = e.next) != null);
+            //让桶的第一个元素指向新建的红黑树头结点，以后这个桶里的元素就是红黑树而不是链表了
             if ((tab[index] = hd) != null)
+                //通过头结点构造红黑树
                 hd.treeify(tab);
         }
     }
@@ -2022,34 +2043,42 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         /**
          * Forms tree of the nodes linked from this node.
          * @return root of tree
+         * 构造红黑树
          */
         final void treeify(Node<K,V>[] tab) {
             TreeNode<K,V> root = null;
             for (TreeNode<K,V> x = this, next; x != null; x = next) {
                 next = (TreeNode<K,V>)x.next;
                 x.left = x.right = null;
+                //第一次进入循环，确定头结点，为黑色
                 if (root == null) {
                     x.parent = null;
                     x.red = false;
                     root = x;
                 }
                 else {
+                    //非第一次进入循环走的逻辑，x 指向树中的某个节点
                     K k = x.key;
                     int h = x.hash;
                     Class<?> kc = null;
                     for (TreeNode<K,V> p = root;;) {
                         int dir, ph;
                         K pk = p.key;
+                        //当比较节点的哈希值比 x的哈希值大时， dir 为 -1
                         if ((ph = p.hash) > h)
                             dir = -1;
                         else if (ph < h)
+                            //哈希值比 x 小时 dir 为 1
                             dir = 1;
                         else if ((kc == null &&
                                   (kc = comparableClassFor(k)) == null) ||
                                  (dir = compareComparables(kc, k, pk)) == 0)
+                            // 比较节点的哈希值与x的哈希值 比较
                             dir = tieBreakOrder(k, pk);
 
                         TreeNode<K,V> xp = p;
+                        //把 当前节点变成 x 的父亲
+                        //如果当前比较节点的哈希值比 x 大，x 就是左孩子，否则 x 是右孩子
                         if ((p = (dir <= 0) ? p.left : p.right) == null) {
                             x.parent = xp;
                             if (dir <= 0)

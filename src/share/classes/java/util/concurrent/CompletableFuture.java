@@ -167,6 +167,9 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     // Fields
 
+    /**
+     * 当前对象的结果或者一个异常包装对象AltResult，关于AltResult下面再看
+     */
     volatile Object result;    // Either the result or boxed AltResult
     volatile WaitNode waiters; // Treiber stack of threads blocked on get()
     volatile CompletionNode completions; // list (Treiber stack) of completions
@@ -201,6 +204,12 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
      * the given result, boxed as NIL if null.
      */
     final void internalComplete(T v, Throwable ex) {
+        /*
+         * 使用cas原子操作，将原本为null的result设置
+         * 1.如果ex不为空则设置result为ex
+         * 2.否则如果v不为空，那么result为v
+         * 3.否则result为 new AltResult(null);
+         */
         if (result == null)
             UNSAFE.compareAndSwapObject
                 (this, RESULT, null,
@@ -463,8 +472,17 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
         private static final long serialVersionUID = 5232453952276885070L;
     }
 
+    /**
+     * CompletableFuture的静态内部类，作为一个ForkJoinTask
+     */
     static final class AsyncSupply<U> extends Async {
+        /**
+         *  fn作为这个Task的具体执行逻辑，函数式编程
+         */
         final Supplier<U> fn;
+        /**
+         * AsyncSupply作为一个依赖Task，dep作为这个Task的Future
+         */
         final CompletableFuture<U> dst;
         AsyncSupply(Supplier<U> fn, CompletableFuture<U> dst) {
             this.fn = fn; this.dst = dst;
@@ -2992,6 +3010,7 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 
     // Unsafe mechanics
     private static final sun.misc.Unsafe UNSAFE;
+    //其中STACK,RESULT就是上面stack和result的句柄，这点和其他juc中的工具惯例相同
     private static final long RESULT;
     private static final long WAITERS;
     private static final long COMPLETIONS;

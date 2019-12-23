@@ -2248,28 +2248,42 @@ public class TreeMap<K,V>
         }
     }
 
+    /**
+     * 插入后进行调整的代码
+     * 参考 https://blog.csdn.net/u011240877/article/details/53329023#%E6%8F%92%E5%85%A5%E5%90%8E%E8%B0%83%E6%95%B4%E7%BA%A2%E9%BB%91%E6%A0%91%E7%BB%93%E6%9E%84
+     */
     /** From CLR */
     private void fixAfterInsertion(Entry<K,V> x) {
+        //直接染成红色
         x.color = RED;
 
+        //这里分析的都是父亲节点为红色的情况，不是红色就不用调整了
         while (x != null && x != root && x.parent.color == RED) {
+            // 插入节点 x 的父亲节点位于左孩子
             if (parentOf(x) == leftOf(parentOf(parentOf(x)))) {
+                // y 是 x 的叔叔节点
                 Entry<K,V> y = rightOf(parentOf(parentOf(x)));
+                //如果 y 也是红色，只要把父亲节点和 y 都变成黑色，爷爷节点变成红的，就 Ok 了
                 if (colorOf(y) == RED) {
                     setColor(parentOf(x), BLACK);
                     setColor(y, BLACK);
                     setColor(parentOf(parentOf(x)), RED);
                     x = parentOf(parentOf(x));
                 } else {
+                    //如果叔叔节点 y 不是红色，就需要右旋，让父亲节点变成根节点，爷爷节点去右子树去，然后把父亲节点变成黑色、爷爷节点变成红色
                     if (x == rightOf(parentOf(x))) {
+                        //特殊情况：x 是父亲节点的右孩子，需要对父亲节点进行左旋，把 x 移动到左子树
                         x = parentOf(x);
+                        //右旋
                         rotateLeft(x);
                     }
                     setColor(parentOf(x), BLACK);
                     setColor(parentOf(parentOf(x)), RED);
+                    //左旋
                     rotateRight(parentOf(parentOf(x)));
                 }
             } else {
+                //和上面对称的操作
                 Entry<K,V> y = leftOf(parentOf(parentOf(x)));
                 if (colorOf(y) == RED) {
                     setColor(parentOf(x), BLACK);
