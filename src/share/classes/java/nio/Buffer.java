@@ -182,9 +182,25 @@ public abstract class Buffer {
         Spliterator.SIZED | Spliterator.SUBSIZED | Spliterator.ORDERED;
 
     // Invariants: mark <= position <= limit <= capacity
+
+    /**
+     * 一个备忘位置。用于记录上一次读写的位置
+     */
     private int mark = -1;
+
+    /**
+     * 表示读写的位置，下标从0开始。
+     */
     private int position = 0;
+
+    /**
+     * 在读的模式下，表示缓存内数据的多少，limit<=capacity;
+     * 在写的模式下，表示最多能存入多少数据，此时limit=capacity;
+     */
     private int limit;
+    /**
+     * 是分配好的一个内存块大小，分配好后大小不可变
+     */
     private int capacity;
 
     // Used only by direct buffers

@@ -548,6 +548,8 @@ public class ReentrantLock implements Lock, java.io.Serializable {
      *
      * @return the number of holds on this lock by the current thread,
      *         or zero if this lock is not held by the current thread
+     *
+     * 查询当前线程保持此锁的次数。
      */
     public int getHoldCount() {
         return sync.getHoldCount();
@@ -634,6 +636,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
      * facilities.
      *
      * @return the owner, or {@code null} if not owned
+     * 返回目前拥有此锁的线程，如果此锁不被任何线程拥有，则返回 null。
      */
     protected Thread getOwner() {
         return sync.getOwner();
