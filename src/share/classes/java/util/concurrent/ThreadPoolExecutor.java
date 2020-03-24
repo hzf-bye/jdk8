@@ -1146,9 +1146,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             // 虽然是核心线程但是设置了核心线程受超时机制的限制, 那么当空闲达到超时时间时, 这就满足了这里的
             // if条件而去执行 if内部的代码, 通过返回 null 结束掉该 getTask()方法, 也最终结束掉 runWorker()方法.
 
-            /**
+            /*
              * 1. 如果当前有效线程大于最大线程数且队列为空，那么结束循环，即当前线程结束且有效线程-1
-             * 2. 如果timed且timedOut为true，且有效线程大于1或者队列为空，那么当前线程是不再等待任务，即结束循环且有效线程-1
+             * 2. 如果timed与timedOut都为true，且有效线程大于1或者队列为空，那么当前线程是不再等待任务，即结束循环且有效线程-1
+             * 3. timedOut为true说明当前线程在设置的超时时间内没有从队列中取出任务，那么此时无意外（当前线程不是最后活跃的线程，此时刻队列汇总仍然没有任务 ）
+             * 应当结束当前线程。
              */
             if ((wc > maximumPoolSize || (timed && timedOut))
                 && (wc > 1 || workQueue.isEmpty())) {
@@ -1161,6 +1163,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 // 从阻塞队列中取出队首的那个任务, 设置给 r. 如果空闲线程等待超时或者该队列已经为空, 则 r为 null.
                 //timed为true标识当前线程去队列中去任务最多等待keepAliveTime时间，如果没等到那么结束当前线程
                 //timed为false标识当前线程一直阻塞，直到从队列中取出一个任务
+
+                /*
+                 * 这里timed为ture说明当前线程在指定时间内没有从队列中取出任务，那么就结束当前线程
+                 * 如果为false,那么就一直阻塞，直到从队列中取出任务
+                 */
                 Runnable r = timed ?
                     workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) :
                     workQueue.take();
@@ -1225,11 +1232,13 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         w.unlock(); // allow interrupts
         boolean completedAbruptly = true;
         try {
-            // 由前边可知, task 就是 w.firstTask
-            // 如果 task为 null, 那么就不进入该 while循环, 也就不运行该 task. 如果
-            // task不为 null, 那么就执行 getTask()方法. 而getTask()方法是个无限
-            // 循环, 会从阻塞队列 workQueue中不断取出任务来执行. 当阻塞队列 workQueue
-            // 中所有的任务都被取完之后, 就结束下面的while循环.
+            //task不为空，则直接进入循环执行此task
+            //否则执行getTask()方法，试着ongoing队列中获取任务
+            /*
+             * 之前有过这样一句代码addWorker(null, false)，当线程池内有效线程的数量=0时执行
+             * 到这里其实就是task==null,在我理解目的是为了让此线程去队列中取任务。
+             * 因为也只有当前任务放入队列成功后才有可能执行addWorker(null, false)代码
+             */
             while (task != null || (task = getTask()) != null) {
                 //当前线程加锁，标识不处于空闲状态
                 w.lock();

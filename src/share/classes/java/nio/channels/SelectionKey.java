@@ -224,6 +224,7 @@ public abstract class SelectionKey {
      * end-of-stream, has been remotely shut down for further reading, or has
      * an error pending, then it will add <tt>OP_READ</tt> to the key's
      * ready-operation set and add the key to its selected-key&nbsp;set.  </p>
+     * 等待写数据的通道可以说是“写就绪”
      */
     public static final int OP_READ = 1 << 0;
 
@@ -237,6 +238,7 @@ public abstract class SelectionKey {
      * remotely shut down for further writing, or has an error pending, then it
      * will add <tt>OP_WRITE</tt> to the key's ready set and add the key to its
      * selected-key&nbsp;set.  </p>
+     * 一个有数据可读的通道可以说是“读就绪”
      */
     public static final int OP_WRITE = 1 << 2;
 
@@ -250,6 +252,7 @@ public abstract class SelectionKey {
      * connection sequence, or has an error pending, then it will add
      * <tt>OP_CONNECT</tt> to the key's ready set and add the key to its
      * selected-key&nbsp;set.  </p>
+     * 某个channel成功连接到另一个服务器称为“连接就绪”
      */
     public static final int OP_CONNECT = 1 << 3;
 
@@ -263,6 +266,7 @@ public abstract class SelectionKey {
      * another connection, or has an error pending, then it will add
      * <tt>OP_ACCEPT</tt> to the key's ready set and add the key to its
      * selected-key&nbsp;set.  </p>
+     * 一个server socket channel准备好接收新进入的连接称为“接收就绪”
      */
     public static final int OP_ACCEPT = 1 << 4;
 
@@ -284,6 +288,7 @@ public abstract class SelectionKey {
      *
      * @throws  CancelledKeyException
      *          If this key has been cancelled
+     * 一个channel做好了读准备
      */
     public final boolean isReadable() {
         return (readyOps() & OP_READ) != 0;
@@ -307,6 +312,7 @@ public abstract class SelectionKey {
      *
      * @throws  CancelledKeyException
      *          If this key has been cancelled
+     * 一个channel做好了写准备
      */
     public final boolean isWritable() {
         return (readyOps() & OP_WRITE) != 0;
@@ -331,6 +337,7 @@ public abstract class SelectionKey {
      *
      * @throws  CancelledKeyException
      *          If this key has been cancelled
+     * 与远程服务器建立了连接
      */
     public final boolean isConnectable() {
         return (readyOps() & OP_CONNECT) != 0;
@@ -355,6 +362,7 @@ public abstract class SelectionKey {
      *
      * @throws  CancelledKeyException
      *          If this key has been cancelled
+     * 一个连接被ServerSocketChannel接受
      */
     public final boolean isAcceptable() {
         return (readyOps() & OP_ACCEPT) != 0;

@@ -615,6 +615,8 @@ public abstract class FileChannel
      *
      * @throws  IOException
      *          If some other I/O error occurs
+     * 将数据从FileChannel传输到其他的channel中
+     * 与transferfrom相反。将this通道中的数据传输到target中
      */
     public abstract long transferTo(long position, long count,
                                     WritableByteChannel target)
@@ -682,6 +684,14 @@ public abstract class FileChannel
      *
      * @throws  IOException
      *          If some other I/O error occurs
+     * 可以将数据从源通道传输到FileChannel中（这个方法在JDK文档中的解释为将字节从给定的可读取字节通道传输到此通道的文件中）。
+     * 方法的输入参数position表示从position处开始向目标文件写入数据，count表示最多传输的字节数。
+     * 如果源通道的剩余空间小于 count 个字节，则所传输的字节数要小于请求的字节数。
+     * 此外要注意，在SoketChannel的实现中，SocketChannel只会传输此刻准备好的数据（可能不足count字节）。
+     * 因此，SocketChannel可能不会将请求的所有数据(count个字节)全部传输到FileChannel中。
+     *
+     * 与transferTo相反，将src中的数据传输到this中
+     *
      */
     public abstract long transferFrom(ReadableByteChannel src,
                                       long position, long count)

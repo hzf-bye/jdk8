@@ -160,6 +160,10 @@ public interface GatheringByteChannel
      *
      * @throws  IOException
      *          If some other I/O error occurs
+     * buffers数组是write()方法的输入参数，write()方法会按照buffer在数组中的顺序，将数据写入到channel，
+     * 注意只有position和limit之间的数据才会被写入。因此，如果一个buffer的容量为128byte，但是仅仅包含58byte的数据，
+     * 那么这58byte的数据将被写入到channel中。因此与Scattering Reads(ScatteringByteChannel#read())相反，Gathering Writes能较好的处理动态消息。
+     *
      */
     public long write(ByteBuffer[] srcs) throws IOException;
 

@@ -156,6 +156,9 @@ public interface ScatteringByteChannel
      *
      * @throws  IOException
      *          If some other I/O error occurs
+     * read()方法按照buffer在数组中的顺序将从channel中读取的数据写入到buffer，当一个buffer被写满后，channel紧接着向另一个buffer中写。
+     * Scattering Reads在移动下一个buffer前，必须填满当前的buffer，这也意味着它不适用于动态消息(消息大小不固定)。
+     * 换句话说，如果存在消息头和消息体，消息头必须完成填充（例如128byte），Scattering Reads才能正常工作。
      */
     public long read(ByteBuffer[] dsts) throws IOException;
 

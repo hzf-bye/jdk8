@@ -1064,6 +1064,7 @@ public abstract class ByteBuffer
      *
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
+     * 只会清除已经读过的数据。任何未读的数据都被移到缓冲区的起始处，新写入的数据将放到缓冲区未读数据的后面。
      */
     public abstract ByteBuffer compact();
 
@@ -1155,6 +1156,7 @@ public abstract class ByteBuffer
      *
      * @return  <tt>true</tt> if, and only if, this buffer is equal to the
      *           given object
+     * equals只是比较Buffer的一部分，不是每一个在它里面的元素都比较。实际上，它只比较Buffer中的剩余元素。
      */
     public boolean equals(Object ob) {
         if (this == ob)
@@ -1201,6 +1203,8 @@ public abstract class ByteBuffer
      *
      * @return  A negative integer, zero, or a positive integer as this buffer
      *          is less than, equal to, or greater than the given buffer
+     * 1.第一个不相等的元素小于另一个Buffer中对应的元素 。
+     * 2.所有元素都相等，但第一个Buffer比另一个先耗尽(第一个Buffer的元素个数比另一个少)。
      */
     public int compareTo(ByteBuffer that) {
         int n = this.position() + Math.min(this.remaining(), that.remaining());

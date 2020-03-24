@@ -271,6 +271,9 @@ public abstract class Selector implements Closeable {
      *
      * @throws  ClosedSelectorException
      *          If this selector is closed
+     * 一旦调用了select()方法，并且返回值表明有一个或更多个通道就绪了，
+     * 然后可以通过调用selector的selectedKeys()方法，访问“已选择键集（selected key set）”中的就绪通道
+     *
      */
     public abstract Set<SelectionKey> selectedKeys();
 
@@ -293,6 +296,7 @@ public abstract class Selector implements Closeable {
      *
      * @throws  ClosedSelectorException
      *          If this selector is closed
+     * 不会阻塞，不管什么通道就绪都立刻返回（此方法执行非阻塞的选择操作。如果自从前一次选择操作后，没有通道变成可选择的，则此方法直接返回零。）。
      */
     public abstract int selectNow() throws IOException;
 
@@ -325,6 +329,11 @@ public abstract class Selector implements Closeable {
      *
      * @throws  IllegalArgumentException
      *          If the value of the timeout argument is negative
+     * 和select()一样，除了最长会阻塞timeout毫秒(参数)。
+     * 返回的int值表示有多少通道已经就绪。亦即，自上次调用select()方法后有多少通道变成就绪状态。
+     * 如果调用select()方法，因为有一个通道变成就绪状态，返回了1，若再次调用select()方法，如果另一个通道就绪了，它会再次返回1。
+     * 如果对第一个就绪的channel没有做任何操作，现在就有两个就绪的通道，但在每次select()方法调用之间，只有一个通道就绪了。
+     *
      */
     public abstract int select(long timeout)
         throws IOException;
@@ -346,6 +355,7 @@ public abstract class Selector implements Closeable {
      *
      * @throws  ClosedSelectorException
      *          If this selector is closed
+     * 阻塞到至少有一个通道在你注册的事件上就绪了。
      */
     public abstract int select() throws IOException;
 
@@ -367,6 +377,10 @@ public abstract class Selector implements Closeable {
      * operations has the same effect as invoking it just once.  </p>
      *
      * @return  This selector
+     * 某个线程调用select()方法后阻塞了，即使没有通道已经就绪，也有办法让其从select()方法返回。
+     * 只要让其它线程在第一个线程调用select()方法的那个对象上调用Selector.wakeup()方法即可。阻塞在select()方法上的线程会立马返回。
+     *
+     * 如果有其它线程调用了wakeup()方法，但当前没有线程阻塞在`select()方法上，下个调用select()方法的线程会立即“醒来（wake up）”。
      */
     public abstract Selector wakeup();
 
@@ -390,6 +404,7 @@ public abstract class Selector implements Closeable {
      *
      * @throws  IOException
      *          If an I/O error occurs
+     * 用完Selector后调用其close()方法会关闭该Selector，且使注册到该Selector上的所有SelectionKey实例无效。通道本身并不会关闭。
      */
     public abstract void close() throws IOException;
 
