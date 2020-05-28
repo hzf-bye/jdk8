@@ -46,7 +46,13 @@ public class ReferenceQueue<T> {
         }
     }
 
+    /**
+     * NULL是当我们构造Reference实例时queue传入null时，会默认使用NULL，这样在enqueue时判断queue是否为NULL,如果为NULL直接返回，入队失败
+     */
     static ReferenceQueue<Object> NULL = new Null<>();
+    /**
+     * ENQUEUED的作用是防止重复入队，reference后会把其queue字段赋值为ENQUEUED,当再次入队时会直接返回失败。
+     */
     static ReferenceQueue<Object> ENQUEUED = new Null<>();
 
     static private class Lock { };

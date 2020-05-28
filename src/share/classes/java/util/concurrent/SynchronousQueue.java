@@ -871,6 +871,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      *
      * @throws InterruptedException {@inheritDoc}
      * @throws NullPointerException {@inheritDoc}
+     * 向队列提交一个元素,阻塞直到其他线程take或者poll此元素.
      */
     public void put(E e) throws InterruptedException {
         if (e == null) throw new NullPointerException();
@@ -907,6 +908,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      * @return {@code true} if the element was added to this queue, else
      *         {@code false}
      * @throws NullPointerException if the specified element is null
+     * 向队列中提交一个元素,如果此时有其他线程正在被take阻塞(即其他线程已准备接收)或者"碰巧"有poll操作,那么将返回true,否则返回false.
      */
     public boolean offer(E e) {
         if (e == null) throw new NullPointerException();
@@ -919,6 +921,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      *
      * @return the head of this queue
      * @throws InterruptedException {@inheritDoc}
+     * 获取并删除一个元素,阻塞直到有其他线程offer/put.
      */
     public E take() throws InterruptedException {
         E e = transferer.transfer(null, false, 0);
@@ -936,6 +939,7 @@ public class SynchronousQueue<E> extends AbstractQueue<E>
      * @return the head of this queue, or {@code null} if the
      *         specified waiting time elapses before an element is present
      * @throws InterruptedException {@inheritDoc}
+     * 获取并删除一个元素,如果此时有其他线程正在被put阻塞(即其他线程提交元素正等待被接收)或者"碰巧"有offer操作,那么将返回true,否则返回false.
      */
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
         E e = transferer.transfer(null, true, unit.toNanos(timeout));

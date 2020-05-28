@@ -87,8 +87,14 @@ public abstract class Reference<T> {
      * field is also used for linking Reference objects in the pending list.
      */
 
+    /**
+     * 指代被引用对象
+     */
     private T referent;         /* Treated specially by GC */
 
+    /**
+     * 回收队列，由使用者在Reference的构造函数中指定
+     */
     volatile ReferenceQueue<? super T> queue;
 
     /* When active:   NULL
@@ -103,6 +109,9 @@ public abstract class Reference<T> {
      *     pending:   next element in the pending list (or null if last)
      *   otherwise:   NULL
      */
+    /**
+     * 在GC时，JVM底层会维护一个叫DiscoveredList的链表，存放的是Reference对象，discovered字段指向的就是链表中的下一个元素，由JVM设置
+     */
     transient private Reference<T> discovered;  /* used by VM */
 
 
@@ -110,6 +119,10 @@ public abstract class Reference<T> {
      * must acquire this lock at the beginning of each collection cycle.  It is
      * therefore critical that any code holding this lock complete as quickly
      * as possible, allocate no new objects, and avoid calling user code.
+     */
+
+    /**
+     * 进行线程同步的锁对象
      */
     static private class Lock { };
     private static Lock lock = new Lock();
@@ -119,6 +132,9 @@ public abstract class Reference<T> {
      * References to this list, while the Reference-handler thread removes
      * them.  This list is protected by the above lock object. The
      * list uses the discovered field to link its elements.
+     */
+    /**
+     * 	等待加入queue的Reference对象，在GC时由JVM设置，会有一个java层的线程(ReferenceHandler)源源不断的从pending中提取元素加入到queue
      */
     private static Reference<Object> pending = null;
 

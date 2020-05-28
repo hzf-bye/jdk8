@@ -224,7 +224,7 @@ public abstract class SelectionKey {
      * end-of-stream, has been remotely shut down for further reading, or has
      * an error pending, then it will add <tt>OP_READ</tt> to the key's
      * ready-operation set and add the key to its selected-key&nbsp;set.  </p>
-     * 等待写数据的通道可以说是“写就绪”
+     * 一个有数据可读的通道可以说是“读就绪”
      */
     public static final int OP_READ = 1 << 0;
 
@@ -238,7 +238,8 @@ public abstract class SelectionKey {
      * remotely shut down for further writing, or has an error pending, then it
      * will add <tt>OP_WRITE</tt> to the key's ready set and add the key to its
      * selected-key&nbsp;set.  </p>
-     * 一个有数据可读的通道可以说是“读就绪”
+     *
+     * 等待写数据的通道可以说是“写就绪”
      */
     public static final int OP_WRITE = 1 << 2;
 
@@ -266,7 +267,7 @@ public abstract class SelectionKey {
      * another connection, or has an error pending, then it will add
      * <tt>OP_ACCEPT</tt> to the key's ready set and add the key to its
      * selected-key&nbsp;set.  </p>
-     * 一个server socket channel准备好接收新进入的连接称为“接收就绪”
+     * 一个serverSocketChannel准备好接收新进入的连接称为“接收就绪”
      */
     public static final int OP_ACCEPT = 1 << 4;
 
