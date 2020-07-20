@@ -3250,12 +3250,14 @@ public final class Class<T> implements java.io.Serializable,
      */
     Map<String, T> enumConstantDirectory() {
         if (enumConstantDirectory == null) {
+            //getEnumConstantsShared最终通过反射调用枚举类的values方法
             T[] universe = getEnumConstantsShared();
             if (universe == null)
                 throw new IllegalArgumentException(
                     getName() + " is not an enum type");
             Map<String, T> m = new HashMap<>(2 * universe.length);
             for (T constant : universe)
+                //map存放了当前enum类的所有枚举实例变量，以name为key值
                 m.put(((Enum<?>)constant).name(), constant);
             enumConstantDirectory = m;
         }

@@ -68,6 +68,7 @@ public class Launcher {
         // Create the extension class loader
         ClassLoader extcl;
         try {
+            // 首先创建拓展类加载器
             extcl = ExtClassLoader.getExtClassLoader();
         } catch (IOException e) {
             throw new InternalError(
@@ -76,6 +77,7 @@ public class Launcher {
 
         // Now create the class loader to use to launch the application
         try {
+            //再创建AppClassLoader并把extcl作为父加载器传递给AppClassLoader
             loader = AppClassLoader.getAppClassLoader(extcl);
         } catch (IOException e) {
             throw new InternalError(
@@ -83,6 +85,7 @@ public class Launcher {
         }
 
         // Also set the context class loader for the primordial thread.
+        //设置线程上下文类加载器
         Thread.currentThread().setContextClassLoader(loader);
 
         // Finally, install a security manager if requested
@@ -294,6 +297,7 @@ public class Launcher {
 
         /**
          * Override loadClass so we can checkPackageAccess.
+         * AppClassLoader重载了loadCass()方法，但最终调用的还是父类loadClass()方法，因此依然遵守双亲委派模式
          */
         public Class<?> loadClass(String name, boolean resolve)
             throws ClassNotFoundException

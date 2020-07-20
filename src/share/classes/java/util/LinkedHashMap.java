@@ -212,6 +212,8 @@ public class LinkedHashMap<K,V>
      * The iteration ordering method for this linked hash map: <tt>true</tt>
      * for access-order, <tt>false</tt> for insertion-order.
      *
+     * 默认是false，则迭代时输出的顺序是插入节点的顺序。若为true，则输出的顺序是按照访问节点的顺序。为true时，可以在这基础之上构建一个LruCache
+     *
      * @serial
      */
     final boolean accessOrder;
@@ -219,12 +221,15 @@ public class LinkedHashMap<K,V>
     // internal utilities
 
     // link at the end of list
+    //将新增的节点，连接在链表的尾部
     private void linkNodeLast(LinkedHashMap.Entry<K,V> p) {
         LinkedHashMap.Entry<K,V> last = tail;
         tail = p;
+        //第一次来的时候链表还是空的，p赋值给head
         if (last == null)
             head = p;
         else {
+            //链表不空则放入链表尾部
             p.before = last;
             last.after = p;
         }
@@ -252,7 +257,11 @@ public class LinkedHashMap<K,V>
         head = tail = null;
     }
 
+    /**
+     * 重写了HashMap中的newNode方法
+     */
     Node<K,V> newNode(int hash, K key, V value, Node<K,V> e) {
+        //LinkedHashMap.Entry继承了Map.Node
         LinkedHashMap.Entry<K,V> p =
             new LinkedHashMap.Entry<K,V>(hash, key, value, e);
         linkNodeLast(p);
@@ -280,49 +289,79 @@ public class LinkedHashMap<K,V>
         return t;
     }
 
+    /**
+     * 在删除节点e时，同步将e从双向链表上删除
+     */
     void afterNodeRemoval(Node<K,V> e) { // unlink
         LinkedHashMap.Entry<K,V> p =
             (LinkedHashMap.Entry<K,V>)e, b = p.before, a = p.after;
+        //待删除节点 p 的前置后置节点都置空
         p.before = p.after = null;
+        ///如果前置节点是null，则现在的头结点应该是后置节点a
         if (b == null)
             head = a;
         else
+            //否则将前置节点b的后置节点指向a
             b.after = a;
+        ////同理如果后置节点时null ，则尾节点应是b
         if (a == null)
             tail = b;
         else
+            //否则更新后置节点a的前置节点为b
             a.before = b;
     }
 
+    /**
+     * 回调函数，新节点插入之后回调 ， 根据evict和判断是否需要删除最老插入的节点。如果实现LruCache会用到这个方法。
+     * 除了第一次构造方法中就要新增map时evict为false(java.util.HashMap#HashMap(Map<? extends K,? extends V>))，
+     * 其他put操作evict为true
+     * @param evict
+     */
     void afterNodeInsertion(boolean evict) { // possibly remove eldest
         LinkedHashMap.Entry<K,V> first;
+        // removeEldestEntry 默认返回false 则不删除节点，子类可以重写此方法实现LruCache
         if (evict && (first = head) != null && removeEldestEntry(first)) {
             K key = first.key;
             removeNode(hash(key), key, null, false, true);
         }
     }
 
-    void afterNodeAccess(Node<K,V> e) { // move node to last
+    /**
+     * accessOrder = true , 会将当前被访问到的节点e，移动至内部的双向链表的尾部。
+     * @param e
+     */
+    void  afterNodeAccess(Node<K,V> e) { // move node to last
         LinkedHashMap.Entry<K,V> last;
+        //如果accessOrder 是true ，且原尾节点不等于e，
         if (accessOrder && (last = tail) != e) {
+            //节点e强转成双向链表节点p
             LinkedHashMap.Entry<K,V> p =
                 (LinkedHashMap.Entry<K,V>)e, b = p.before, a = p.after;
+            //要将p移动至内部的双向链表的尾部，后置节点一定是null
             p.after = null;
+            //如果p的前置节点是null，则p以前是头结点，所以更新现在的头结点是p的后置节点a
             if (b == null)
                 head = a;
             else
+                //否则更新p的前直接点b的后置节点为 a
                 b.after = a;
             if (a != null)
+                //如果p的后置节点不是null，则更新后置节点a的前置节点为b
                 a.before = b;
             else
+                //如果原本p的后置节点是null，则p就是尾节点。 此时 更新last的引用为 p的前置节点b
                 last = b;
             if (last == null)
+                //原本尾节点是null  则，链表中就一个节点
                 head = p;
             else {
+                //否则 更新 当前节点p的前置节点为 原尾节点last， last的后置节点是p
                 p.before = last;
                 last.after = p;
             }
+            //尾节点的引用赋值成p
             tail = p;
+            //修改modCount。
             ++modCount;
         }
     }
@@ -410,8 +449,10 @@ public class LinkedHashMap<K,V>
      * @param value value whose presence in this map is to be tested
      * @return <tt>true</tt> if this map maps one or more keys to the
      *         specified value
+     * 重写了该方法，相比HashMap的实现，更为高效。
      */
     public boolean containsValue(Object value) {
+        //遍历一遍链表，去比较有没有value相等的节点，并返回
         for (LinkedHashMap.Entry<K,V> e = head; e != null; e = e.after) {
             V v = e.value;
             if (v == value || (value != null && value.equals(v)))
@@ -624,6 +665,7 @@ public class LinkedHashMap<K,V>
      */
     public Set<Map.Entry<K,V>> entrySet() {
         Set<Map.Entry<K,V>> es;
+        //返回LinkedEntrySet
         return (es = entrySet) == null ? (entrySet = new LinkedEntrySet()) : es;
     }
 
@@ -691,31 +733,50 @@ public class LinkedHashMap<K,V>
     // Iterators
 
     abstract class LinkedHashIterator {
+        //下一个节点
         LinkedHashMap.Entry<K,V> next;
+        //当前节点
         LinkedHashMap.Entry<K,V> current;
         int expectedModCount;
 
         LinkedHashIterator() {
+            //初始化时，next 为 LinkedHashMap内部维护的双向链表的head
             next = head;
+            //记录当前modCount，以满足fail-fast
             expectedModCount = modCount;
+            //当前节点为null
             current = null;
         }
 
+        //判断是否还有next
         public final boolean hasNext() {
+            //就是判断next是否为null，默认next是head  表头
             return next != null;
         }
 
+        /**
+         * nextNode() 就是迭代器里的next()方法 。
+         * 该方法的实现可以看出，迭代LinkedHashMap，就是从内部维护的双链表的表头开始循环输出。
+         */
         final LinkedHashMap.Entry<K,V> nextNode() {
+            //记录要返回的e。
             LinkedHashMap.Entry<K,V> e = next;
+            //判断fail-fast
             if (modCount != expectedModCount)
                 throw new ConcurrentModificationException();
+            //如果要返回的节点是null，异常
             if (e == null)
                 throw new NoSuchElementException();
+            //更新当前节点为e
             current = e;
+            //更新下一个节点是e的后置节点
             next = e.after;
             return e;
         }
 
+        /**
+         * 删除方法 最终还是调用了HashMap的removeNode方法
+         */
         public final void remove() {
             Node<K,V> p = current;
             if (p == null)

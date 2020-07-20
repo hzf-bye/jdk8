@@ -537,7 +537,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             if (table == null) { // pre-size
                 //根据m的元素数量和当前表的加载因子，计算出阈值
                 float ft = ((float)s / loadFactor) + 1.0F;
-                ////修正阈值的边界 不能超过MAXIMUM_CAPACITY
+                //修正阈值的边界 不能超过MAXIMUM_CAPACITY
                 int t = ((ft < (float)MAXIMUM_CAPACITY) ?
                          (int)ft : MAXIMUM_CAPACITY);
                 //如果新的阈值大于当前阈值,返回一个大于新的阈值的2次方阈值中最小的一个值
@@ -656,7 +656,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * @param hash hash for key
      * @param key the key
      * @param value the value to put
-     * @param onlyIfAbsent if true, don't change existing value
+     * @param onlyIfAbsent if true, don't change existing value true表示只有key不存在时才赋值
      * @param evict if false, the table is in creation mode.
      * @return previous value, or null if none
      */
@@ -794,10 +794,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
          * 这里假设原来的哈希桶容量为n,
          * 那么原来在桶中下标为i的节点，在新的hash桶中的节点要么为i，要么为i+n
          * 举个例子：
-         * 假设原来哈希桶容量为8，原来节点a的hash值为13，那么与8模运算后得到该节点在下标为8的位置
+         * 假设原来哈希桶容量为8，原来节点a的hash值为13，那么与8模运算后得到该节点在下标为5的位置
          * 那么此时扩容哈希桶容量为16，原来节点a的hash值为13，那么与16模运算后得到该节点在下标为13的位置
          * 所以a节点在旧的hash桶中下标为5，新hash桶中为13
-         * 当然如果原来节点b的hash至为3，那么在新旧hash桶中的下标都为3
+         * 当然如果原来节点b的hash值为3，那么在新旧hash桶中的下标都为3
          *
          *
          */
@@ -811,7 +811,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         /*
                          * 如果当前链表中就一个元素，（没有发生哈希)
                          * 直接将这个元素放置在新的哈希桶里。
-                         * 注意这里取下标 是用 哈希值 与 桶的长度-1 。
+                         * 注意这里取下标 是用 哈希值 & 桶的长度-1 。
                          * 由于桶的长度是2的n次方，这么做其实是等于 一个模运但是效率更高
                          */
                         newTab[e.hash & (newCap - 1)] = e;
@@ -836,15 +836,18 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                              * 这里又是一个利用位运算代替常规运算的高效点：利用哈希值与旧的容量，可以得到哈希值去模后，
                              * 应该存放在低位，否则存放在高位
                              * 因为oldCap是2的n次方，所以2进制表示就是 10000或者1000000等等
-                             * 这里用hash & oldCap就代表
-                             * 如果hash值与oldCap为0，说明hash%oldCap==hash%newCap，那么此节点下标位置不变
-                             * 如果hash值与oldCap为1，说明hash%oldCap+oldCap==hash%newCap，那么此节点下标位置改变
+                             * 这里用hash & oldCap
+                             * 如果hash值 & oldCap为0，说明hash%oldCap==hash%newCap，那么此节点下标位置不变
+                             * 如果hash值 & oldCap不为0，说明hash%oldCap+oldCap==hash%newCap，那么此节点下标位置改变
+                             * 例如 oldCap = 4 , 那么newCap = 8
+                             * 当hash = 3时是放在槽3中，而扩容后仍然放在槽3中 即 3 & 4 = 0
+                             * 当hash = 7时是放在槽3中，而扩容后应当放在槽7中 即 7 & 4 != 0
                              *
                              */
                             if ((e.hash & oldCap) == 0) {
                                 if (loTail == null)
                                     loHead = e;
-                                else
+                                els
                                     loTail.next = e;
                                 loTail = e;
                             }
@@ -945,14 +948,20 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     final Node<K,V> removeNode(int hash, Object key, Object value,
                                boolean matchValue, boolean movable) {
+        // p 是待删除节点的前置节点
         Node<K,V>[] tab; Node<K,V> p; int n, index;
+        //如果哈希表不为空，则根据hash值算出的index下 有节点的话。
         if ((tab = table) != null && (n = tab.length) > 0 &&
             (p = tab[index = (n - 1) & hash]) != null) {
+            //node是待删除节点
             Node<K,V> node = null, e; K k; V v;
+            //如果链表头的就是需要删除的节点
             if (p.hash == hash &&
                 ((k = p.key) == key || (key != null && key.equals(k))))
+                //将待删除节点引用赋给node
                 node = p;
             else if ((e = p.next) != null) {
+                //否则循环遍历 找到待删除节点，赋值给node
                 if (p instanceof TreeNode)
                     node = ((TreeNode<K,V>)p).getTreeNode(hash, key);
                 else {
@@ -967,16 +976,20 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                     } while ((e = e.next) != null);
                 }
             }
+            //如果有待删除节点node，  且 matchValue为false，或者值也相等
             if (node != null && (!matchValue || (v = node.value) == value ||
                                  (value != null && value.equals(v)))) {
                 if (node instanceof TreeNode)
                     ((TreeNode<K,V>)node).removeTreeNode(this, tab, movable);
                 else if (node == p)
+                    //如果node ==  p，说明是链表头是待删除节点
                     tab[index] = node.next;
                 else
+                    //否则待删除节点在表中间
                     p.next = node.next;
                 ++modCount;
                 --size;
+                //LinkedHashMap回调函数
                 afterNodeRemoval(node);
                 return node;
             }
@@ -1575,7 +1588,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         final Node<K,V> nextNode() {
             Node<K,V>[] t;
             Node<K,V> e = next;
-            if (modCount != expectedModCount)
+            if (modCou   nt != expectedModCount)
                 throw new ConcurrentModificationException();
             if (e == null)
                 throw new NoSuchElementException();

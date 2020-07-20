@@ -403,13 +403,16 @@ public abstract class ClassLoader {
     {
         synchronized (getClassLoadingLock(name)) {
             // First, check if the class has already been loaded
+            // // 先从缓存查找该class对象，找到就不用重新加载
             Class<?> c = findLoadedClass(name);
             if (c == null) {
                 long t0 = System.nanoTime();
                 try {
                     if (parent != null) {
+                        //如果找不到，则委托给父类加载器去加载
                         c = parent.loadClass(name, false);
                     } else {
+                        //如果没有父类，则委托给启动加载器去加载
                         c = findBootstrapClassOrNull(name);
                     }
                 } catch (ClassNotFoundException e) {
@@ -421,6 +424,7 @@ public abstract class ClassLoader {
                     // If still not found, then invoke findClass in order
                     // to find the class.
                     long t1 = System.nanoTime();
+                    // 如果都没有找到，则通过自定义实现的findClass去查找并加载
                     c = findClass(name);
 
                     // this is the defining class loader; record the stats

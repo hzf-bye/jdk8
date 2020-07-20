@@ -547,7 +547,7 @@ public abstract class AbstractQueuedSynchronizer
      * Tail of the wait queue, lazily initialized.  Modified only via
      * method enq to add new wait node.
      */
-    //指向同步的队尾
+    //指向同步队列的队尾
     private transient volatile Node tail;
 
     /**
@@ -1387,7 +1387,8 @@ public abstract class AbstractQueuedSynchronizer
             /*
              * 分三种情况
              * 1.如果队列为空，即只有一个线程获取到了锁且没有线程在等待获取所，那么h==null,则直接结束释放锁操作
-             * 2.如果队列不为空的情况下，且当前持有锁的线程为队列中的头节点，
+             * 2.如果队列不为空的情况下，且
+             *
              * 因为在每个线程获取锁失败且加入等待队列后的自旋过程中，
              * 如果之后获取锁成功那么会将头节点设置为head节点，acquireQueued(node, arg)方法，
              * 且若头节点有后续节点那么头节点的waitStatus会被设置为-1，如果没有后继节点那么仍然为初始化状态0，所以不需要通知后继节点
@@ -2222,7 +2223,9 @@ public abstract class AbstractQueuedSynchronizer
             // 就调用acquireQueued(node, savedState)执行自旋操作争取锁，
             while (!isOnSyncQueue(node)) {
                 //挂起线程
+                //恢复的条件为 ，1：线程调用了unpark; 2:其它线程中断了线程
                 LockSupport.park(this);
+                //能执行到这里说明要么是signal方法被调用了，要么是线程被中断了
                 //判断是否被中断唤醒，如果是退出循环。
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;
@@ -2234,6 +2237,9 @@ public abstract class AbstractQueuedSynchronizer
                 //清理等待队列中不为CONDITION状态的节点
                 unlinkCancelledWaiters();
             if (interruptMode != 0)
+                //说明线程被中断了，
+                // interruptMode == THROW_IE说明线程被中断的时候还在等待队列中，没有被加入同步队列中，那么此时响应中断抛出异常
+                //
                 reportInterruptAfterWait(interruptMode);
         }
 

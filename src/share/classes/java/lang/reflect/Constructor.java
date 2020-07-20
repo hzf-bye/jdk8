@@ -404,6 +404,7 @@ public final class Constructor<T> extends Executable {
                 checkAccess(caller, clazz, null, modifiers);
             }
         }
+        //这里判断Modifier.ENUM是不是枚举修饰符，如果是就抛异常
         if ((clazz.getModifiers() & Modifier.ENUM) != 0)
             throw new IllegalArgumentException("Cannot reflectively create enum objects");
         ConstructorAccessor ca = constructorAccessor;   // read volatile

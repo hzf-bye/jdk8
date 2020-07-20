@@ -725,6 +725,8 @@ public final class Unsafe {
      *
      * @see #getInt(Object, long)
      * @see #putInt(Object, long, int)
+     * //获取数组第一个元素的偏移地址
+     * //arrayBaseOffset 和 arrayIndexScale 搭配使用可以定位数组中每个元素在内存中的位置
      */
     public native int arrayBaseOffset(Class<?> arrayClass);
 
@@ -774,6 +776,8 @@ public final class Unsafe {
      * @see #arrayBaseOffset
      * @see #getInt(Object, long)
      * @see #putInt(Object, long, int)
+     * //arrayBaseOffset 和 arrayIndexScale 搭配使用可以定位数组中每个元素在内存中的位置
+     * //获取数组的转换因子，也就是数组中元素的增量地址
      */
     public native int arrayIndexScale(Class<?> arrayClass);
 

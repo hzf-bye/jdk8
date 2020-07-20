@@ -827,6 +827,7 @@ public class ThreadLocal<T> {
 
             // Use lower threshold for doubling to avoid hysteresis
             //如果清理后size超过阈值的3/4，则进行扩容
+
             if (size >= threshold - threshold / 4)
                 resize();
         }
