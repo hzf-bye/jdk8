@@ -78,14 +78,34 @@ public class LongAdder extends Striped64 implements Serializable {
 
     /**
      * Adds the given value.
+     * 累加方法，参数x为累加的值
      *
      * @param x the value to add
      */
     public void add(long x) {
         Cell[] as; long b, v; int m; Cell a;
-        if ((as = cells) != null || !casBase(b = base, b + x)) {
+        /*
+         * 如果以下两种条件则继续执行if内的语句
+         * 1. cells数组不为null（不存在争用的时候，cells数组一定为null，一旦对base的cas操作失败，才会初始化cells数组）
+         * 2. 如果cells数组为null，如果casBase执行成功，则直接返回，如果casBase方法执行失败（casBase失败，说明第一次争用冲突产生，需要对cells数组初始化）进入if内；
+         * casBase方法很简单，就是通过UNSAFE类的cas设置成员变量base的值为base+要累加的值
+         * casBase执行成功的前提是无竞争，这时候cells数组还没有用到为null，可见在无竞争的情况下是类似于AtomticInteger处理方式，使用cas做累加。
+         */
+         if ((as = cells) != null || !casBase(b = base, b + x)) {
+             //uncontended判断cells数组中，当前线程要做cas累加操作的某个元素是否#不#存在争用，如果cas失败则存在争用；uncontended=false代表存在争用，uncontended=true代表不存在争用。
             boolean uncontended = true;
-            if (as == null || (m = as.length - 1) < 0 ||
+             /*
+              * 1. as == null ： cells数组未被初始化，成立则直接进入if执行cell初始化
+              * 2. (m = as.length - 1) < 0： cells数组的长度为0
+              * 条件1与2都代表cells数组没有被初始化成功，初始化成功的cells数组长度为2；
+              * 3. (a = as[getProbe() & m]) == null ：如果cells被初始化，且它的长度不为0，则通过getProbe方法获取当前线程Thread的threadLocalRandomProbe变量的值，初始为0，然后执行threadLocalRandomProbe&(cells.length-1 ),相当于m%cells.length;如果cells[threadLocalRandomProbe%cells.length]的位置为null，这说明这个位置从来没有线程做过累加，需要进入if继续执行，在这个位置创建一个新的Cell对象；
+              * 4. !(uncontended = a.cas(v = a.value, v + x))：尝试对cells[threadLocalRandomProbe%cells.length]位置的Cell对象中的value值做累加操作,并返回操作结果,如果失败了则进入if，重新计算一个threadLocalRandomProbe；
+              * 如果进入if语句执行longAccumulate方法,有三种情况
+              * 1. 前两个条件代表cells没有初始化，
+              * 2. 第三个条件指当前线程hash到的cells数组中的位置还没有其它线程做过累加操作，
+              * 3. 第四个条件代表产生了冲突,uncontended=false
+              */
+              if (as == null || (m = as.length - 1) < 0 ||
                 (a = as[getProbe() & m]) == null ||
                 !(uncontended = a.cas(v = a.value, v + x)))
                 longAccumulate(x, null, uncontended);

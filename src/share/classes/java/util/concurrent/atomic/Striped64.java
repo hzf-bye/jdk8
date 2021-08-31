@@ -41,7 +41,11 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * A package-local class holding common representation and mechanics
  * for classes supporting dynamic striping on 64bit values. The class
- * extends Number so that concrete subclasses must publicly do so.
+ * extends Number so that concrete subclasses must publicly do so
+ * Striped64是一个高并发累加的工具类。
+ * Striped64的设计核心思路就是通过内部的分散计算来避免竞争。
+ * Striped64内部包含一个base和一个Cell[] cells数组，又叫hash表。
+ * 没有竞争的情况下，要累加的数通过cas累加到base上；如果有竞争的话，会将要累加的数累加到Cells数组中的某个cell元素里面。所以整个Striped64的值为sum=base+∑[0~n]cells。
  */
 @SuppressWarnings("serial")
 abstract class Striped64 extends Number {
@@ -116,17 +120,33 @@ abstract class Striped64 extends Number {
      *
      * JVM intrinsics note: It would be possible to use a release-only
      * form of CAS here, if it were provided.
+     * 为提高性能，使用注解@sun.misc.Contended，用来避免伪共享
+     * 伪共享简单来说就是会破坏其它线程在缓存行中的值，导致重新从主内存读取，降低性能。
      */
     @sun.misc.Contended static final class Cell {
+        /**
+         * 用来保存要累加的值
+         */
         volatile long value;
         Cell(long x) { value = x; }
+
+        /**
+         * 使用UNSAFE类的cas来更新value值
+         */
         final boolean cas(long cmp, long val) {
             return UNSAFE.compareAndSwapLong(this, valueOffset, cmp, val);
         }
 
         // Unsafe mechanics
         private static final sun.misc.Unsafe UNSAFE;
+        /**
+         * value在Cell类中存储位置的偏移量；
+         */
         private static final long valueOffset;
+
+        /**
+         * 这个静态方法用于获取偏移量
+         */
         static {
             try {
                 UNSAFE = sun.misc.Unsafe.getUnsafe();
@@ -144,17 +164,35 @@ abstract class Striped64 extends Number {
 
     /**
      * Table of cells. When non-null, size is a power of 2.
+     * // 存放cell的hash表，大小为2乘幂
+     * cells数组是LongAdder高性能实现的必杀器：
+     * AtomicInteger只有一个value，所有线程累加都要通过cas竞争value这一个变量，高并发下线程争用非常严重；
+     * 而LongAdder则有两个值用于累加，一个是base，它的作用类似于AtomicInteger里面的value，
+     * 在没有竞争的情况不会用到cells数组，这时使用base做累加，有了竞争后cells数组就上场了，
+     * 第一次初始化长度为2，以后每次扩容都是变为原来的两倍，
+     * 直到cells数组的长度大于等于当前服务器cpu的数量为止就不在扩容（CPU能够并行的CAS操作的最大数量是它的核心数），
+     * 每个线程会通过线程对cells[threadLocalRandomProbe%cells.length]位置的Cell对象中的value做累加，
+     * 这样相当于将线程绑定到了cells中的某个cell对象上。
      */
     transient volatile Cell[] cells;
 
     /**
      * Base value, used mainly when there is no contention, but also as
      * a fallback during table initialization races. Updated via CAS.
+     * 基础值
+     * 它有两个作用：
+     * 1. 在开始没有竞争的情况下，将累加值累加到base
+     * 2. 在cells初始化的过程中，cells不可用，这时会尝试将值累加到base上
      */
     transient volatile long base;
 
     /**
      * Spinlock (locked via CAS) used when resizing and/or creating Cells.
+     * 自旋锁，通过CAS操作加锁（1.初始化cells数组，2.创建cell单元，3.cells扩容）
+     * cellsBusy作用是当要修改cells数组时加锁，防止多线程同时修改cells数组，0为无锁，1为加锁，加锁的状况有三种
+     * 1. cells数组初始化的时候
+     * 2. cells数组扩容的时候
+     * 3. 如果cells数组中某个元素为null，给这个位置创建新的Cell对象的时候
      */
     transient volatile int cellsBusy;
 
@@ -213,12 +251,20 @@ abstract class Striped64 extends Number {
      */
     final void longAccumulate(long x, LongBinaryOperator fn,
                               boolean wasUncontended) {
+        /*
+        * 获取当前线程的threadLocalRandomProbe值作为hash值,如果当前线程的threadLocalRandomProbe为0，说明当前线程是第一次进入该方法，则强制设置线程的threadLocalRandomProbe为ThreadLocalRandom类的成员静态私有变量probeGenerator的值，后面会详细将hash值的生成;
+        * 另外需要注意，如果threadLocalRandomProbe=0，代表新的线程开始参与cell争用的情况
+        * 1.当前线程之前还没有参与过cells争用（也许cells数组还没初始化，进到当前方法来就是为了初始化cells数组后争用的）,是第一次执行base的cas累加操作失败；
+        * 2.或者是在执行add方法时，对cells某个位置的Cell的cas操作第一次失败，则将wasUncontended设置为false，那么这里会将其重新置为true；第一次执行操作失败；
+        * 凡是参与了cell争用操作的线程threadLocalRandomProbe都不为0；
+        */
         int h;
         if ((h = getProbe()) == 0) {
             ThreadLocalRandom.current(); // force initialization
             h = getProbe();
             wasUncontended = true;
         }
+        //todo https://blog.csdn.net/jiangtianjiao/article/details/103844801/
         boolean collide = false;                // True if last slot nonempty
         for (;;) {
             Cell[] as; Cell a; int n; long v;
