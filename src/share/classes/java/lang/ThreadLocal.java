@@ -398,7 +398,7 @@ public class ThreadLocal<T> {
         private void setThreshold(int len) {
             threshold = len * 2 / 3;
         }
-
+T
         /**
          * Increment i modulo len.
          */
@@ -714,7 +714,7 @@ public class ThreadLocal<T> {
         /**
          *
          * 从当前staleSlot槽开始，尝试擦除一段连续槽，
-         * 1.其中对应的槽不空，但是槽中tab的key为空的，需要被擦除，当遍历到第一个槽为空时结束循环 @1
+         * 1.其中对应的槽不空，但是槽中tab的key为空的，需要被擦除，当遍历到第一个槽不为空时结束循环 @1
          * 2.当槽中tab不为空，且tab的key也不为空时，尝试将此key移动到原本的槽中(k.threadLocalHashCode & (len - 1)的槽处)，
          *   如果原本槽中有值，那么一直向后找知道找到一个为空的槽，应该是为了下一次ThreadLocal.get()能快速命中 @2
          *
@@ -734,12 +734,12 @@ public class ThreadLocal<T> {
             // Rehash until we encounter null
             Entry e;
             int i;
-            // 从当前staleSlot的下一个Entry开始遍历
+            // 从当前staleSlot的下一个Entry开始遍历 @1
             for (i = nextIndex(staleSlot, len); (e = tab[i]) != null; i = nextIndex(i, len)) {
                 ThreadLocal<?> k = e.get();
                 //如果Entry的键为null,那么同样擦除当前index处的Entry的value，擦除当前table中index处的值，
                 // help GC
-                //@1
+                //
                 if (k == null) {
                     e.value = null;
                     tab[i] = null;

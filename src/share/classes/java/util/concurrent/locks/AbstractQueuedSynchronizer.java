@@ -668,6 +668,14 @@ public abstract class AbstractQueuedSynchronizer
      * Wakes up node's successor, if one exists.
      *
      * @param node the node
+     * 这里主要作用是用unpark()唤醒同步队列中最前边未放弃线程(也就是状态为CANCELLED的线程结点s)。
+     * 此时，回看自旋的函数acquireQueued()，
+     * s结点的线程被唤醒后，会进入acquireQueued()函数的if (p == head && tryAcquire(arg))的判断，
+     * 如果p!=head也不会有影响，因为它会执行shouldParkAfterFailedAcquire()，
+     * 由于s通过unparkSuccessor()操作后已是同步队列中最前边未放弃的线程结点，
+     * 那么通过shouldParkAfterFailedAcquire()内部对结点状态的调整，s也必然会成为head的next结点，
+     * 因此再次自旋时p==head就成立了，然后s把自己设置成head结点，表示自己已经获取到资源了，最终acquire()也返回了，这就是独占锁释放的过程。
+     *
      */
     private void unparkSuccessor(Node node) {
         /*
@@ -901,7 +909,7 @@ public abstract class AbstractQueuedSynchronizer
              * need a signal, but don't park yet.  Caller will need to
              * retry to make sure it cannot acquire before parking.
              */
-            //如果ws小于0又不是SIGNAL状态，那么应该是0为初始化状态
+            //如果ws小于等于0又不是SIGNAL状态，那么应该是0为初始化状态
             //则将其设置为SIGNAL状态，代表该节点的线程正在等待唤醒。
             compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
         }
@@ -966,7 +974,7 @@ public abstract class AbstractQueuedSynchronizer
 
                 // 判断是否挂起线程
                 /*
-                 * 如果前驱节点不是head，
+                 * 如果前驱节点不是head 或者 前驱节点是head，但是获取锁失败
                  * 1.通过shouldParkAfterFailedAcquire找到将前驱节点的等待状态设置为-1，
                  * 2.如果设置成功那么parkAndCheckInterrupt挂起当前线程，并且返回当前线程的中轩状态
                  */

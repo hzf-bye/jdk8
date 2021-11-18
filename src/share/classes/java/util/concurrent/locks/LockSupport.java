@@ -168,11 +168,17 @@ public class LockSupport {
      * @param blocker the synchronization object responsible for this
      *        thread parking
      * @since 1.6
+     * park用于挂起当前线程，如果许可可用，会立马返回，并消费掉许可。
+     * 恢复的条件为 1：线程调用了unpark; 2:其它线程中断了线程；3：发生了不可预料的事情
      */
     public static void park(Object blocker) {
+        ////获取当前线程
         Thread t = Thread.currentThread();
+        //记录当前线程阻塞的原因,底层就是unsafe.putObject,就是把对象存储起来
         setBlocker(t, blocker);
+        //执行park
         UNSAFE.park(false, 0L);
+        //线程恢复后，去掉阻塞原因
         setBlocker(t, null);
     }
 
